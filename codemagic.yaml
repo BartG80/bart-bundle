@@ -1,6 +1,6 @@
 workflows:
   bart-bundle-workflow:
-   name:bart-36-finale
+   name: bart-36-finale
    max_build_duration: 20
    environment:
      flutter: stable
