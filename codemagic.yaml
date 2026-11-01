@@ -7,42 +7,32 @@ workflows:
     scripts:
       - name: Get dependencies
         script: |
+          flutter clean
           flutter pub get
-      - name: Create Android folder if missing
+      - name: Create Android folder
         script: |
-          if [ ! -d "android" ]; then
-            flutter create --platforms=android . --org com.bart.bundle
-          fi
-          ls -la android/app/ || true
-      - name: FIX - Aggiorna a compileSdk 34
+          flutter create --platforms=android . --org com.bart.bundle
+          ls android/app/build.gradle*
+      - name: FIX - Aggiorna a compileSdk 34 e NDK
         script: |
           set +e
-          echo "Cerco file build.gradle..."
-          find android -name "build.gradle*" | head -20
-          
-          # Crea se ancora manca
-          if [ ! -f "android/app/build.gradle" ] && [ ! -f "android/app/build.gradle.kts" ]; then
-            flutter create --platforms=android . --org com.bart.bundle
-          fi
-          
-          # Applica fix a tutti i file trovati, senza bloccare se manca
           for f in android/app/build.gradle android/app/build.gradle.kts; do
             if [ -f "$f" ]; then
-              echo "Fix $f"
               sed -i.bak 's/compileSdkVersion 33/compileSdkVersion 34/g' "$f" || true
-              sed -i.bak 's/compileSdkVersion 32/compileSdkVersion 34/g' "$f" || true
               sed -i.bak 's/compileSdk 33/compileSdk 34/g' "$f" || true
               sed -i.bak 's/compileSdk = 33/compileSdk = 34/g' "$f" || true
               sed -i.bak 's/targetSdkVersion 33/targetSdkVersion 34/g' "$f" || true
               sed -i.bak 's/targetSdk 33/targetSdk 34/g' "$f" || true
               sed -i.bak 's/targetSdk = 33/targetSdk = 34/g' "$f" || true
+              # Aggiungi NDK se manca
+              if ! grep -q "ndkVersion" "$f"; then
+                sed -i.bak '/targetSdk/a \        ndkVersion "27.0.12077973"' "$f" || true
+              fi
             fi
           done
-          
-          echo "Fix completato, proseguo..."
-          cat android/app/build.gradle | grep -E "compileSdk|targetSdk" || cat android/app/build.gradle.kts | grep -E "compileSdk|targetSdk" || true
+          echo "Fix completato"
       - name: Build APK
         script: |
-          flutter build apk --release --no-tree-shake-icons
+          flutter build apk --release --no-tree-shake-icons --verbose
     artifacts:
       - build/**/outputs/**/*.apk
