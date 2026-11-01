@@ -1,6 +1,6 @@
 workflows:
   bart-bundle-workflow:
-    name: bart-falegname-final
+    name: bart-36-verde
     max_build_duration: 20
     environment:
       flutter: stable
@@ -10,7 +10,7 @@ workflows:
         script: |
           rm -rf android
           flutter create . --platforms=android --org com.bart.bundle
-          flutter pub get
+          flutter pub upgrade
           flutter build apk --release --no-tree-shake-icons
     artifacts:
       - build/**/outputs/**/*.apk
