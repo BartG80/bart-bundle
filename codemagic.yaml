@@ -1,15 +1,16 @@
 workflows:
   bart-bundle-workflow:
-    name: bart-falegname
-    max_build_duration: 15
+    name: bart-falegname-final
+    max_build_duration: 20
     environment:
       flutter: stable
       java: 17
     scripts:
       - name: Build APK
         script: |
-          flutter clean
+          rm -rf android
+          flutter create . --platforms=android --org com.bart.bundle
           flutter pub get
-          flutter build apk --release
+          flutter build apk --release --no-tree-shake-icons
     artifacts:
       - build/**/outputs/**/*.apk
