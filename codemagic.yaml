@@ -1,20 +1,32 @@
 workflows:
-  bart-bundle:
+  bart-bundle-4-apk:
     name: Bart Bundle 4 APK
-    instance_type: mac_mini_m2
     max_build_duration: 60
+    instance_type: mac_mini_m2
     environment:
-      flutter: 3.22.2
+      flutter: stable
+      xcode: latest
+      cocoapods: default
     scripts:
-      - name: Get deps
-        script: flutter pub get
+      - name: Get dependencies
+        script: |
+          flutter pub get
       - name: Build Elettrico
-        script: flutter build apk --target=lib/main_elettrico.dart --release -v --build-name=1.0 --build-number=1 --no-tree-shake-icons
+        script: |
+          flutter build apk --target=lib/main_elettrico.dart --release
+          mkdir -p build/apks
+          cp build/app/outputs/flutter-apk/app-release.apk build/apks/elettrico.apk
       - name: Build Idraulico
-        script: flutter build apk --target=lib/main_idraulico.dart --release --build-name=1.0 --build-number=2 --no-tree-shake-icons
+        script: |
+          flutter build apk --target=lib/main_idraulico.dart --release
+          cp build/app/outputs/flutter-apk/app-release.apk build/apks/idraulico.apk
       - name: Build Edile
-        script: flutter build apk --target=lib/main_edile.dart --release --build-name=1.0 --build-number=3 --no-tree-shake-icons
+        script: |
+          flutter build apk --target=lib/main_edile.dart --release
+          cp build/app/outputs/flutter-apk/app-release.apk build/apks/edile.apk
       - name: Build Falegname
-        script: flutter build apk --target=lib/main_falegname.dart --release --build-name=1.0 --build-number=4 --no-tree-shake-icons
+        script: |
+          flutter build apk --target=lib/main_falegname.dart --release
+          cp build/app/outputs/flutter-apk/app-release.apk build/apks/falegname.apk
     artifacts:
-      - build/**/outputs/**/*.apk
+      - build/apks/*.apk
