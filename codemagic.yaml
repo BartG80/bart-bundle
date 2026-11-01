@@ -1,0 +1,20 @@
+workflows:
+  bart-bundle:
+    name: Bart Bundle 4 APK
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.22.2
+    scripts:
+      - name: Get deps
+        script: flutter pub get
+      - name: Build Elettrico
+        script: flutter build apk --debug --target=lib/main_elettrico.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Elettrico-Pro.apk
+      - name: Build Idraulico
+        script: flutter build apk --debug --target=lib/main_idraulico.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Idraulico-Pro.apk
+      - name: Build Edile
+        script: flutter build apk --debug --target=lib/main_edile.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Edile-Pro.apk
+      - name: Build Falegname
+        script: flutter build apk --debug --target=lib/main_falegname.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Falegname-Pro.apk
+    artifacts:
+      - Bart-*.apk
