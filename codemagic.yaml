@@ -1,25 +1,27 @@
 workflows:
-  bart-bundle-4-apk:
-    name: Bart Bundle 4 APK
-    instance_type: mac_mini_m2
-    max_build_duration: 60
+  bart-bundle-workflow:
+    name: bart-bundle (Android 34 fix)
+    max_build_duration: 20
     environment:
       flutter: stable
     scripts:
       - name: Get dependencies
         script: flutter pub get
-      - name: Create Android folder
+      - name: Create Android folder if missing
         script: |
           if [ ! -d "android" ]; then
-            flutter create . --platforms=android --org com.bart.bundle --project-name bart_bundle
+            flutter create --platforms=android .
           fi
-          flutter clean
-          flutter pub get
-      - name: Build all APKs
+      - name: FIX - Aggiorna a compileSdk 34
         script: |
-          flutter build apk --target=lib/main_elettrico.dart --release --no-tree-shake-icons
-          flutter build apk --target=lib/main_idraulico.dart --release --no-tree-shake-icons
-          flutter build apk --target=lib/main_edile.dart --release --no-tree-shake-icons
-          flutter build apk --target=lib/main_falegname.dart --release --no-tree-shake-icons
+          sed -i.bak 's/compileSdkVersion 33/compileSdkVersion 34/g' android/app/build.gradle || true
+          sed -i.bak 's/compileSdk 33/compileSdk 34/g' android/app/build.gradle || true
+          sed -i.bak 's/targetSdkVersion 33/targetSdkVersion 34/g' android/app/build.gradle || true
+          sed -i.bak 's/targetSdk 33/targetSdk 34/g' android/app/build.gradle || true
+          sed -i.bak 's/compileSdk = 33/compileSdk = 34/g' android/app/build.gradle.kts || true
+          sed -i.bak 's/targetSdk = 33/targetSdk = 34/g' android/app/build.gradle.kts || true
+          cat android/app/build.gradle | grep -E "compileSdk|targetSdk"
+      - name: Build APK
+        script: flutter build apk --release --no-tree-shake-icons
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
+      - build/**/outputs/**/*.apk
