@@ -1,11 +1,12 @@
 name: bart_bundle
+description: Bundle 4 App Bart
 publish_to: 'none'
+version: 1.0.0+1
 environment:
   sdk: ">=3.0.0 <4.0.0"
 dependencies:
   flutter:
     sdk: flutter
-  pdf: any
-  printing: any
+  cupertino_icons: ^1.0.5
 flutter:
   uses-material-design: true
