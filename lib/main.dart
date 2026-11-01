@@ -41,3 +41,48 @@ const LISTINO = [
   Voce("Ferramenta guide cerniere maniglie", 15, 120, 45, unita: "cad"),
   Voce("Zoccolini cornici accessori", 10, 50, 25, unita: "ml"),
 ];
+
+void main() {
+  runApp(const BartApp());
+}
+
+class BartApp extends StatelessWidget {
+  const BartApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Bart Falegname Pro',
+      theme: ThemeData(primarySwatch: Colors.brown),
+      home: const PreventivoPage(),
+    );
+  }
+}
+
+class PreventivoPage extends StatelessWidget {
+  const PreventivoPage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Bart Falegname - Listino'), backgroundColor: Colors.brown),
+      body: ListView.builder(
+        itemCount: LISTINO.length,
+        itemBuilder: (context, i) {
+          final v = LISTINO[i];
+          return ListTile(
+            title: Text(v.nome),
+            subtitle: Text('${v.min.toInt()} - ${v.max.toInt()} € / ${v.unita}'),
+            trailing: Text('${v.medio.toInt()} €', style: const TextStyle(fontWeight: FontWeight.bold)),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.picture_as_pdf),
+        onPressed: () async {
+          final pdf = pw.Document();
+          pdf.addPage(pw.Page(build: (c) => pw.Column(children: [pw.Text('Listino Bart Falegname'), pw.SizedBox(height: 20), ...LISTINO.map((v) => pw.Text('${v.nome} - ${v.medio} €/${v.unita}'))])));
+          await Printing.layoutPdf(onLayout: (f) async => pdf.save());
+        },
+      ),
+    );
+  }
+}
