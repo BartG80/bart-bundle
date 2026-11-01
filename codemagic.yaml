@@ -9,12 +9,12 @@ workflows:
       - name: Get deps
         script: flutter pub get
       - name: Build Elettrico
-        script: flutter build apk --debug --target=lib/main_elettrico.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Elettrico-Pro.apk
+        script: flutter build apk --target=lib/main_elettrico.dart --release -v --build-name=1.0 --build-number=1 --no-tree-shake-icons
       - name: Build Idraulico
-        script: flutter build apk --debug --target=lib/main_idraulico.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Idraulico-Pro.apk
+        script: flutter build apk --target=lib/main_idraulico.dart --release --build-name=1.0 --build-number=2 --no-tree-shake-icons
       - name: Build Edile
-        script: flutter build apk --debug --target=lib/main_edile.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Edile-Pro.apk
+        script: flutter build apk --target=lib/main_edile.dart --release --build-name=1.0 --build-number=3 --no-tree-shake-icons
       - name: Build Falegname
-        script: flutter build apk --debug --target=lib/main_falegname.dart && mv build/app/outputs/flutter-apk/app-debug.apk Bart-Falegname-Pro.apk
+        script: flutter build apk --target=lib/main_falegname.dart --release --build-name=1.0 --build-number=4 --no-tree-shake-icons
     artifacts:
-      - Bart-*.apk
+      - build/**/outputs/**/*.apk
