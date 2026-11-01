@@ -1,12 +1,11 @@
-name: bart_preventivi_pro
-description: Bundle 4 App Bart con listino nazionale
-version: 1.0.0+1
+name: bart_bundle
+publish_to: 'none'
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 dependencies:
   flutter:
     sdk: flutter
-  pdf: ^3.11.1
-  printing: ^5.13.2
+  pdf: any
+  printing: any
 flutter:
   uses-material-design: true
