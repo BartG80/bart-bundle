@@ -9,7 +9,7 @@ workflows:
       - name: Build APK
         script: |
           flutter create . --platforms=android --org com.bart.bundle
-          flutter pub uograde
+          flutter pub upgrade
           flutter build apk --release --no-tree-shake-icona
     artifacts:
       - build/**/outputs/**/*.apk
