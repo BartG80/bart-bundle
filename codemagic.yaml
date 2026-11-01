@@ -1,38 +1,15 @@
 workflows:
   bart-bundle-workflow:
-    name: bart-bundle (Android 34 fix)
-    max_build_duration: 20
+    name: bart-falegname
+    max_build_duration: 15
     environment:
       flutter: stable
+      java: 17
     scripts:
-      - name: Get dependencies
+      - name: Build APK
         script: |
           flutter clean
           flutter pub get
-      - name: Create Android folder
-        script: |
-          flutter create --platforms=android . --org com.bart.bundle
-          ls android/app/build.gradle*
-      - name: FIX - Aggiorna a compileSdk 34 e NDK
-        script: |
-          set +e
-          for f in android/app/build.gradle android/app/build.gradle.kts; do
-            if [ -f "$f" ]; then
-              sed -i.bak 's/compileSdkVersion 33/compileSdkVersion 34/g' "$f" || true
-              sed -i.bak 's/compileSdk 33/compileSdk 34/g' "$f" || true
-              sed -i.bak 's/compileSdk = 33/compileSdk = 34/g' "$f" || true
-              sed -i.bak 's/targetSdkVersion 33/targetSdkVersion 34/g' "$f" || true
-              sed -i.bak 's/targetSdk 33/targetSdk 34/g' "$f" || true
-              sed -i.bak 's/targetSdk = 33/targetSdk = 34/g' "$f" || true
-              # Aggiungi NDK se manca
-              if ! grep -q "ndkVersion" "$f"; then
-                sed -i.bak '/targetSdk/a \        ndkVersion "27.0.12077973"' "$f" || true
-              fi
-            fi
-          done
-          echo "Fix completato"
-      - name: Build APK
-        script: |
-          flutter build apk --release --no-tree-shake-icons --verbose
+          flutter build apk --release
     artifacts:
       - build/**/outputs/**/*.apk
