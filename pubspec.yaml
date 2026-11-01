@@ -1,18 +1,26 @@
-name: bart_bundle
-description: Bart Bundle - 4 App in 1
+name: falegname_pro
+description: Falegname Pro - Preventivi Professionali con Listino Nazionale Completo
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+4
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  pdf: ^3.11.1
-  printing: ^5.13.2
-  path_provider: ^2.1.2
-  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.2
+  pdf: ^3.10.7
+  path_provider: ^2.1.1
+  share_plus: ^7.2.1
+  printing: ^5.11.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/
