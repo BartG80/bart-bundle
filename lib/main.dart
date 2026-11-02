@@ -88,7 +88,7 @@ class _PreventivoFalegnameState extends State<PreventivoFalegname> {
         Text('DATI CLIENTE', style: TextStyle(fontWeight: FontWeight.bold)),
         TextField(controller: nomeCli, decoration: InputDecoration(labelText: 'Nome Cliente')), TextField(controller: telCli, decoration: InputDecoration(labelText: 'Telefono')),
         TextField(controller: viaCli, decoration: InputDecoration(labelText: 'Via Cliente')),
-        Row(children: [Expanded(child: TextField(controller: cittaCli, decoration: InputDecoration(labelText: 'Città'))), SizedBox(width: 6, child: TextField(controller: provCli, decoration: InputDecoration(labelText: 'Prov'))), SizedBox(width: 8), SizedBox(width: 90, child: TextField(controller: capCli, decoration: InputDecoration(labelText: 'CAP')))]),
+        Row(children: [Expanded(child: TextField(controller: cittaCli, decoration: InputDecoration(labelText: 'Città')),), SizedBox(width: 6, child: TextField(controller: provCli, decoration: InputDecoration(labelText: 'Prov'))), SizedBox(width: 8), SizedBox(width: 90, child: TextField(controller: capCli, decoration: InputDecoration(labelText: 'CAP')))]),
         SizedBox(height: 20),
         Container(color: Colors.brown.shade100, padding: EdgeInsets.all(8), width: double.infinity, child: Text('LAVORAZIONI - Seleziona e scorri prezzo', style: TextStyle(fontWeight: FontWeight.bold))),
         SizedBox(height: 8),
@@ -100,18 +100,43 @@ class _PreventivoFalegnameState extends State<PreventivoFalegname> {
         SizedBox(height: 20),
         Container(padding: EdgeInsets.all(16), color: Colors.brown, width: double.infinity, child: Text('TOTALE: ${totale.toInt()} €', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
         SizedBox(height: 12),
-        ElevatedButton(style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 55), backgroundColor: Colors.brown), onPressed: () async {
-          final pdf = pw.Document();
-          pdf.addPage(pw.Page(build: (c) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text('Preventivo ${nomeFal.text}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-            pw.Text('${viaFal.text}, ${cittaFal.text} (${provFal.text}) P.IVA ${pivaFal.text}'),
-            pw.SizedBox(height: 10), pw.Text('Cliente: ${nomeCli.text} - ${viaCli.text}, ${cittaCli.text}'), pw.Divider(),
-            ...lavorazioni.where((e) => e.selezionato).map((e) => pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text(e.nome), pw.Text('${e.valore.toInt()} €')])),
-            ...legni.where((e) => e.selezionato).map((e) => pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text(e.nome), pw.Text('${e.valore.toInt()} €')])),
-            pw.Divider(), pw.Text('TOTALE: ${totale.toInt()} €', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          ])));
-          await Printing.layoutPdf(onLayout: (_) => pdf.save());
-        }, child: Text('GENERA PDF', style: TextStyle(color: Colors.white, fontSize: 18))),
+        ElevatedButton(style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 55), backgroundColor: Colors.brown), 
+        onPressed: () async {
+                final pdf = pw.Document();
+                pdf.addPage(pw.Page(
+                  pageFormat: PdfPageFormat.a4,
+                  build: (c) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                    pw.Text('PREVENTIVO FALEGNAMERIA', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 15),
+                    pw.Container(padding: pw.EdgeInsets.all(10), color: PdfColors.grey200, child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                      pw.Text('DATI FALEGNAME:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('${nomeFal.text}'),
+                      pw.Text('P.IVA: ${pivaFal.text} - Tel: ${telFal.text}'),
+                      pw.Text('${viaFal.text}, ${cittaFal.text} (${provFal.text}) ${capFal.text}'),
+                    ])),
+                    pw.SizedBox(height: 10),
+                    pw.Container(padding: pw.EdgeInsets.all(10), color: PdfColors.orange50, child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                      pw.Text('DATI CLIENTE:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('${nomeCli.text}'),
+                      pw.Text('Tel: ${telCli.text}'),
+                      pw.Text('${viaCli.text}, ${cittaCli.text} (${provCli.text}) ${capCli.text}'),
+                    ])),
+                    pw.Divider(),
+                    pw.SizedBox(height: 10),
+                    pw.Text('VOCI SELEZIONATE:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                    pw.SizedBox(height: 5),
+                    ...lavorazioni.where((e) => e.selezionato).map((e) => pw.Padding(padding: pw.EdgeInsets.symmetric(vertical: 3), child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text(e.nome), pw.Text('${e.valore.toInt()} €')]))),
+                    ...legni.where((e) => e.selezionato).map((e) => pw.Padding(padding: pw.EdgeInsets.symmetric(vertical: 3), child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text(e.nome + ' (essenza)'), pw.Text('${e.valore.toInt()} €')]))),
+                    pw.Divider(),
+                    pw.SizedBox(height: 10),
+                    pw.Container(alignment: pw.Alignment.centerRight, child: pw.Text('TOTALE: ${totale.toInt()} €', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold))),
+                    pw.SizedBox(height: 30),
+                    pw.Text('Data: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: pw.TextStyle(fontSize: 10)),
+                  ])
+                ));
+                await Printing.layoutPdf(onLayout: (_) => pdf.save());
+        }, 
+        child: Text('GENERA PDF', style: TextStyle(color: Colors.white, fontSize: 18))),
         SizedBox(height: 40),
       ])),
     );
