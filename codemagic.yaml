@@ -1,6 +1,6 @@
 workflows:
   bart-bundle-workflow:
-    name: bart-36-finale
+    name: bart-finale-36
     max_build_duration: 20
     environment:
       flutter: stable
@@ -8,7 +8,7 @@ workflows:
     scripts:
       - name: Build APK
         script: |
-          if [ ! -d "android" ]; then flutter create . --platforms=android --org com.bart.bundle; fi
+          flutter create . --platforms=android --org com.bart.bundle
           flutter pub upgrade
           flutter build apk --release
     artifacts:
