@@ -53,6 +53,8 @@ class _HomePageState extends State<HomePage> {
   String finituraTipo = 'Olio'; double costoFinitura = 0;
   String verniciaturaTipo = 'Vernice trasparente'; int maniVernice = 2; double costoVerniciaturaMq = 12; double mqVerniciatura = 0;
   double marginePercent = 30; double ivaPercent = 22;
+  int validitaGiorni = 15;
+  String clausolaMercato = "I prezzi dei materiali (legni e pannelli) sono soggetti a variazione in base all'andamento del mercato.";
 
   double get totMqMobili => mobili.fold(0, (s,e)=> s + e.mq * e.qta);
   double get totMlMobili => mobili.fold(0, (s,e)=> s + e.ml * e.qta);
@@ -74,7 +76,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Preventivo v4.4 - Slider Regione'), centerTitle: true),
+      appBar: AppBar(title: Text('Preventivo v4.5 - Validità $validitaGiorni gg'), centerTitle: true),
       body: ListView(padding: const EdgeInsets.fromLTRB(12,12,12,120), children: [
         _cardMiaDitta(), const SizedBox(height:12),
         _cardCliente(), const SizedBox(height:12),
@@ -82,7 +84,8 @@ class _HomePageState extends State<HomePage> {
         _cardLegni(), const SizedBox(height:12),
         _cardPannelli(), const SizedBox(height:12),
         _cardLavorazioni(), const SizedBox(height:12),
-        _cardTotali(), const SizedBox(height:90)
+        _cardTotali(), const SizedBox(height:12),
+        _cardNoteLegali(), const SizedBox(height:90)
       ]),
       bottomNavigationBar: Padding(padding: const EdgeInsets.all(12), child: ElevatedButton.icon(onPressed: ()=> _showRiepilogoPdf(), icon: const Icon(Icons.picture_as_pdf), label: const Text('Vedi PDF Completo'), style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(18), backgroundColor: Colors.brown, foregroundColor: Colors.white))),
     );
@@ -142,17 +145,51 @@ class _HomePageState extends State<HomePage> {
     _rowTot('TOTALE IVATO', totaleIvato, bold:true, big:true),
   ]))); }
 
+  Widget _cardNoteLegali(){
+    return Card(color: Colors.grey.shade200, child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Row(children: [Icon(Icons.gavel), SizedBox(width:8), Text('NOTE LEGALI - VALIDITÀ', style: TextStyle(fontWeight: FontWeight.bold))]),
+      const SizedBox(height:12),
+      DropdownButton<int>(
+        value: validitaGiorni, isExpanded: true,
+        items: [15,30].map((g)=> DropdownMenuItem(value:g, child: Text('Validità preventivo: $g giorni'))).toList(),
+        onChanged: (v)=> setState(()=> validitaGiorni=v!),
+      ),
+      const SizedBox(height:8),
+      TextField(
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Dicitura variazione mercato', border: OutlineInputBorder()),
+        controller: TextEditingController(text: clausolaMercato),
+        onChanged: (v)=> setState(()=> clausolaMercato=v),
+      ),
+      const SizedBox(height:12),
+      Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, border: Border.all()), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('ANTEPRIMA NEL PDF:', style: TextStyle(fontWeight: FontWeight.bold, fontSize:11)),
+        SizedBox(height:6),
+        Text('$clausolaMercato', style: TextStyle(fontSize:11, fontStyle: FontStyle.italic)),
+        SizedBox(height:6),
+        Text('Il presente preventivo ha validità di $validitaGiorni giorni dalla data di emissione. Oltre tale termine i prezzi potranno subire variazioni.', style: TextStyle(fontSize:11, fontWeight: FontWeight.bold)),
+      ])),
+    ])));
+  }
+
   Widget _rowTot(String l, double v, {bool bold=false, bool big=false}){ return Padding(padding: const EdgeInsets.symmetric(vertical:2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: TextStyle(fontWeight: bold?FontWeight.bold:FontWeight.normal, fontSize: big?16:12)), Text('${v.toStringAsFixed(2)}€', style: TextStyle(fontWeight: bold?FontWeight.bold:FontWeight.normal, fontSize: big?16:12))])); }
 
   void _addMobile(){ showDialog(context: context, builder: (c){ var nome='Mobile'; double ml=0,mq=0; int qta=1; return AlertDialog(title: const Text('Aggiungi Mobile'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(onChanged: (v)=> nome=v, decoration: const InputDecoration(labelText: 'Nome')), TextField(onChanged: (v)=> ml=double.tryParse(v)??0, decoration: const InputDecoration(labelText: 'ml'), keyboardType: TextInputType.number), TextField(onChanged: (v)=> mq=double.tryParse(v)??0, decoration: const InputDecoration(labelText: 'mq'), keyboardType: TextInputType.number), TextField(onChanged: (v)=> qta=int.tryParse(v)??1, decoration: const InputDecoration(labelText: 'qta'), keyboardType: TextInputType.number)]), actions: [TextButton(onPressed: (){ setState(()=> mobili.add(MobileItem(nome:nome, ml:ml, mq:mq, qta:qta))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);}); }
   void _addLegno(){ String tipo = PriceList.legni.keys.first; int spessore = PriceList.legni[tipo]!.keys.first; double mq = 0; showDialog(context: context, builder: (c){ return StatefulBuilder(builder: (c2,setD){ double prezzo = PriceList.legni[tipo]![spessore]??0; return AlertDialog(title: const Text('Aggiungi Legno'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButton<String>(value: tipo, isExpanded: true, items: PriceList.legni.keys.map((k)=> DropdownMenuItem(value:k, child: Text(k))).toList(), onChanged: (v){ setD(()=> tipo=v!); spessore = PriceList.legni[tipo]!.keys.first; }), DropdownButton<int>(value: spessore, isExpanded: true, items: PriceList.legni[tipo]!.keys.map((s)=> DropdownMenuItem(value:s, child: Text('$s mm - ${PriceList.legni[tipo]![s]}€/mq'))).toList(), onChanged: (v)=> setD(()=> spessore=v!)), TextField(decoration: const InputDecoration(labelText: 'MQ'), keyboardType: TextInputType.number, onChanged: (v)=> mq=double.tryParse(v)??0)]), actions: [TextButton(onPressed: (){ setState(()=> legni.add(LegnoItem(tipo:tipo, spessore:spessore, mq:mq, prezzoBase:prezzo))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);});}); }
   void _addPannello(){ String tipo = PriceList.pannelli.keys.first; int spessore = PriceList.pannelli[tipo]!.keys.first; int qta=1; showDialog(context: context, builder: (c){ return StatefulBuilder(builder: (c2,setD){ double prezzo = PriceList.pannelli[tipo]![spessore]??0; return AlertDialog(title: const Text('Aggiungi Pannello'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButton<String>(value: tipo, isExpanded: true, items: PriceList.pannelli.keys.map((k)=> DropdownMenuItem(value:k, child: Text(k, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v){ setD(()=> tipo=v!); spessore = PriceList.pannelli[tipo]!.keys.first; }), DropdownButton<int>(value: spessore, isExpanded: true, items: PriceList.pannelli[tipo]!.keys.map((s)=> DropdownMenuItem(value:s, child: Text('$s mm - ${PriceList.pannelli[tipo]![s]}€'))).toList(), onChanged: (v)=> setD(()=> spessore=v!)), TextField(decoration: const InputDecoration(labelText: 'Qta pannelli'), keyboardType: TextInputType.number, onChanged: (v)=> qta=int.tryParse(v)??1)]), actions: [TextButton(onPressed: (){ setState(()=> pannelli.add(PannelloItem(tipo:tipo, spessore:spessore, qta:qta, prezzoBase:prezzo))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);});}); }
 
-  void _showRiepilogoPdf(){ showDialog(context: context, builder: (c)=> AlertDialog(title: Text('Preventivo $numPrev'), content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  void _showRiepilogoPdf(){ showDialog(context: context, builder: (c)=> AlertDialog(title: Text('Preventivo $numPrev - ${totaleIvato.toStringAsFixed(2)}€'), content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text('DA: $miaRagione - $miaVia, $miaCap $miaCitta ($miaProv) Tel:$mioTel PIVA:$miaPiva', style: const TextStyle(fontSize:11)),
     const Divider(),
     Text('A: $cliente - $cliVia, $cliCap $cliCitta ($cliProv) Tel:$cliTel PIVA:$cliPiva', style: const TextStyle(fontSize:11)),
+    Text('Data: $dataPrev - N° $numPrev', style: const TextStyle(fontSize:11)),
     const Divider(),
     Text('TOTALE IVATO: ${totaleIvato.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold, fontSize:18)),
+    const Divider(thickness:2),
+    Text('NOTE LEGALI:', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12)),
+    SizedBox(height:4),
+    Text(clausolaMercato, style: TextStyle(fontSize:10, fontStyle: FontStyle.italic)),
+    SizedBox(height:8),
+    Text('Validità: $validitaGiorni giorni dalla data di emissione ($dataPrev). Oltre tale termine i prezzi sono soggetti a variazione.', style: TextStyle(fontSize:10, fontWeight: FontWeight.bold)),
   ])), actions: [TextButton(onPressed: ()=> Navigator.pop(c), child: const Text('Chiudi'))])); }
 }
