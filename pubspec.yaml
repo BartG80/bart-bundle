@@ -1,7 +1,7 @@
 name: falegname_pro
-description: Preventivo Falegname Pro v4.6
+description: Preventivo Falegname Pro
 publish_to: 'none'
-version: 1.0.0+6
+version: 1.0.0+7
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -10,10 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.5
-  pdf: ^3.11.3
-  printing: ^5.13.0
-  path_provider: ^2.1.5
-  share_plus: ^9.0.0
+  pdf: ^3.10.7
+  path_provider: ^2.1.1
+  share_plus: ^7.2.1
 
 dev_dependencies:
   flutter_test:
