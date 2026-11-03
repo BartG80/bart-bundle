@@ -1,217 +1,228 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Falegnameria di Bart - v4.8 FIX INVIO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--green:#16a34a;--dark:#1f2937;--bg:#f8fafc}
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto}
+body{margin:0;background:var(--bg);color:var(--dark);padding:12px;padding-bottom:80px}
+h1{margin:0 0 4px;font-size:22px}
+h2{margin:14px 0 8px;font-size:17px;border-left:4px solid var(--green);padding-left:8px}
+.card{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+input,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;margin:4px 0;font-size:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.btn{padding:12px 16px;border:0;border-radius:10px;font-weight:700;cursor:pointer;width:100%;font-size:15px}
+.btn-green{background:var(--green);color:#fff}
+.btn-dark{background:var(--dark);color:#fff;margin-top:6px}
+.btn-red{background:#ef4444;color:#fff;margin-top:6px}
+.small{font-size:12px;color:#6b7280}
+.badge{display:inline-block;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.manufatto{border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-bottom:10px;background:#f9fafb}
+.riga-tot{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f3f4f6}
+.riga-tot b{font-size:15px}
+</style>
+</head>
+<body>
+<h1>🪵 Falegnameria di Bart <span class="badge">v4.8 FIX INVIO €</span></h1>
+<div class="small">Fix: anteprima con € - PDF inviato con EUR (non scompare)</div>
 
-void main() => runApp(const FalegnameApp());
+<div class="card">
+<h2>Dati Cliente</h2>
+<div class="grid2">
+<input id="clienteNome" placeholder="Nome cliente (es: Miguelina)">
+<input id="clienteTel" placeholder="Tel">
+</div>
+<input id="clienteLuogo" placeholder="Luogo (es: Cerreto)">
+</div>
 
-class FalegnameApp extends StatelessWidget {
-  const FalegnameApp({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Preventivo Falegname Pro',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.brown),
-      home: const HomePage(),
-    );
-  }
+<div class="card">
+<h2>Manufatti - TUTTO L/l/H/P mm + mq auto</h2>
+<div id="manufattiList"></div>
+<button class="btn btn-dark" onclick="addManufatto()">+ Aggiungi Manufatto</button>
+</div>
+
+<div class="card">
+<h2>Legni - Essenze</h2>
+<div class="grid2">
+<select id="essenza">
+<option value="Noce Nazionale|100|5">Noce Nazionale 100/mq +5</option>
+<option value="Rovere|90|5">Rovere 90/mq +5</option>
+<option value="Frassino|80|5">Frassino 80/mq +5</option>
+<option value="Lamellare Abete|38|6">Lamellare Abete 38+6</option>
+</select>
+<input id="legnoMq" type="number" step="0.01" placeholder="mq es: 30">
+</div>
+<div class="grid2">
+<div><span class="small">Spessore mm</span><input id="spessoreLegno" type="number" value="10"></div>
+<div style="display:flex;align-items:end"><button class="btn btn-dark" onclick="addLegno()">+ Legno</button></div>
+</div>
+<div id="legniList" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h2>Pannelli</h2>
+<div class="grid2">
+<select id="pannello">
+<option value="Lamellare Abete|38|6">Lamellare Abete 38+6</option>
+<option value="Multistrato Pioppo|35|5">Multistrato Pioppo 35+5</option>
+</select>
+<input id="pannelloQta" type="number" value="5">
+</div>
+<button class="btn btn-dark" onclick="addPannello()">+ Pannello</button>
+<div id="pannelliList" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h2>Costi & Margini</h2>
+<label class="small">Utile / Margine % (default 30.0) - È una PERCENTUALE di guadagno</label>
+<div class="grid2">
+<input id="margin" type="number" value="30" placeholder="Utile % default 30">
+<input id="iva" type="number" value="22" placeholder="IVA %">
+<input id="scartoLegni" type="number" value="15" placeholder="Scarto legni %">
+<input id="scartoPannelli" type="number" value="10" placeholder="Scarto pannelli %">
+<input id="manodoperaH" type="number" value="15" placeholder="Manodopera h">
+<input id="manodoperaPrezzo" type="number" value="35" placeholder="EUR/h">
+<input id="levigatura" type="number" value="300" placeholder="Levigatura">
+<input id="finitura" type="number" value="55" placeholder="Finitura Cera">
+<input id="extraLacc" type="number" value="0" placeholder="Extra laccatura/trasporto">
+<input id="verniciatura" type="number" value="3300" placeholder="Verniciatura x2">
+</div>
+</div>
+
+<div class="card">
+<div id="anteprima"></div>
+<button class="btn btn-green" onclick="generaPDF()">📄 GENERA PDF + SALVA + CONDIVIDI</button>
+<div class="small" style="margin-top:6px">Il PDF userà EUR per non far sparire il simbolo quando invii su WhatsApp</div>
+</div>
+
+<script>
+let manufatti=[], legni=[], pannelli=[];
+// ANTEPRIMA con € - bello da vedere
+const fmtUI = n => `${Number(n).toFixed(2)}€`;
+// PDF con EUR - non scompare mai quando invii
+const fmtPDF = n => `EUR ${Number(n).toFixed(2)}`;
+
+function addManufatto(){
+  manufatti.push({id:Date.now(), nome:'Tavolo', L:1000, l:600, H:800, P:400, qta:1, mq:0});
+  renderManufatti();
 }
-
-class PriceList {
-  static const Map<String, Map<int, double>> legni = {
-    'Rovere': {10: 80, 12: 95, 15: 115, 18: 135, 20: 150, 22: 165, 25: 185, 30: 220, 40: 290, 50: 370, 60: 450},
-    'Frassino': {10: 70, 12: 85, 15: 105, 18: 125, 20: 140, 22: 155, 25: 175, 30: 205, 40: 270, 50: 340, 60: 410},
-    'Noce Nazionale': {10: 95, 12: 115, 15: 135, 18: 160, 20: 180, 25: 220, 30: 260, 40: 340, 50: 430, 60: 520},
-    'Abete': {10: 35, 12: 42, 15: 52, 18: 62, 20: 70, 22: 78, 25: 88, 30: 105, 40: 135, 50: 170, 60: 205},
-  };
-  static const Map<String, Map<int, double>> pannelli = {
-    'Multistrato Pioppo 2440x1220': {4: 22, 6: 26, 8: 30, 9: 32, 10: 34, 12: 38, 15: 44, 18: 48, 20: 54, 25: 68, 30: 82},
-    'Multistrato Betulla 2500x1280': {4: 38, 6: 45, 8: 52, 9: 58, 10: 62, 12: 68, 15: 76, 18: 85, 20: 96, 25: 118, 30: 142},
-    'MDF 2800x2070': {4: 22, 6: 26, 8: 32, 10: 36, 12: 40, 15: 44, 18: 48, 20: 54, 25: 68, 30: 85},
-    'Nobilitato Bianco 2800x2070': {8: 32, 10: 36, 12: 40, 15: 44, 18: 48, 20: 54, 25: 65, 30: 78},
-    'Nobilitato Rovere 2800x2070': {8: 42, 10: 46, 12: 50, 15: 56, 18: 62, 20: 70, 25: 82, 30: 96},
-    'Nobilitato Grigio/Nero 2800x2070': {8: 38, 10: 42, 12: 46, 15: 52, 18: 58, 20: 66, 25: 78, 30: 92},
-    'Listellare Rovere': {15: 110, 18: 130, 22: 155, 27: 185, 30: 205, 40: 270},
-    'Lamellare Abete': {10: 32, 12: 36, 15: 42, 18: 48, 20: 52, 22: 58, 25: 66, 30: 78, 40: 105, 50: 135, 60: 165},
-    'Lamellare Rovere': {10: 95, 12: 110, 15: 130, 18: 150, 20: 165, 22: 182, 25: 205, 30: 245, 40: 320, 50: 395, 60: 475},
-  };
+function renderManufatti(){
+  const c=document.getElementById('manufattiList');
+  c.innerHTML='';
+  manufatti.forEach((m,i)=>{
+    m.mq = (m.L/1000)*(m.H/1000)*m.qta;
+    c.innerHTML+=`
+    <div class="manufatto">
+      <input value="${m.nome}" oninput="manufatti[${i}].nome=this.value" placeholder="Descrizione">
+      <div class="grid4">
+        <div><span class="small">L mm</span><input type="number" value="${m.L}" oninput="manufatti[${i}].L=parseFloat(this.value)||0;renderManufatti()"></div>
+        <div><span class="small">l mm</span><input type="number" value="${m.l}" oninput="manufatti[${i}].l=parseFloat(this.value)||0;renderManufatti()"></div>
+        <div><span class="small">H mm</span><input type="number" value="${m.H}" oninput="manufatti[${i}].H=parseFloat(this.value)||0;renderManufatti()"></div>
+        <div><span class="small">P mm</span><input type="number" value="${m.P}" oninput="manufatti[${i}].P=parseFloat(this.value)||0"></div>
+      </div>
+      <div class="grid2"><div><span class="small">Qta</span><input type="number" value="${m.qta}" oninput="manufatti[${i}].qta=parseFloat(this.value)||1;renderManufatti()"></div><div><span class="small">mq auto</span><input value="${m.mq.toFixed(3)} mq" disabled></div></div>
+      <button class="btn btn-red" onclick="manufatti.splice(${i},1);renderManufatti();aggiornaAnteprima()">Elimina</button>
+    </div>`;
+  });
+  aggiornaAnteprima();
 }
-
-class MobileItem { String nome; double ml; double mq; int qta; MobileItem({required this.nome, this.ml=0, this.mq=0, this.qta=1}); }
-class LegnoItem { String tipo; int spessore; double mq; double prezzoBase; double extraRegione; LegnoItem({required this.tipo, required this.spessore, required this.mq, required this.prezzoBase, this.extraRegione=0}); double get prezzoMq => prezzoBase + extraRegione; double get totale => mq * prezzoMq; }
-class PannelloItem { String tipo; int spessore; int qta; double prezzoBase; double extraRegione; PannelloItem({required this.tipo, required this.spessore, required this.qta, required this.prezzoBase, this.extraRegione=0}); double get prezzoPannello => prezzoBase + extraRegione; double get totale => qta * prezzoPannello; }
-
-class HomePage extends StatefulWidget { const HomePage({super.key}); @override State<HomePage> createState() => _HomePageState(); }
-
-class _HomePageState extends State<HomePage> {
-  @override
-  void initState(){ super.initState(); _initNum(); }
-  void _initNum(){
-    int now = DateTime.now().millisecondsSinceEpoch % 10000;
-    numPrev = 'PREV-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}-$now';
-    dataPrev = DateTime.now().toString().substring(0,10);
-  }
-
-  String miaRagione = ''; String miaVia = ''; String miaCitta = ''; String miaProv = ''; String miaCap = ''; String mioTel = ''; String miaPiva = '';
-  String cliente = ''; String cliVia = ''; String cliCitta = ''; String cliProv = ''; String cliCap = ''; String cliTel = ''; String cliPiva = '';
-  String numPrev = ''; String dataPrev = '';
-  List<MobileItem> mobili = []; List<LegnoItem> legni = []; List<PannelloItem> pannelli = [];
-  double extraFerramenta = 0; double extraLaccatura = 0;
-  double scartoLegniPercent = 15; double scartoPannelliPercent = 10;
-  double oreManodopera = 0; double costoOra = 35;
-  double levigaturaMq = 0; double costoLevigaturaMq = 8;
-  String finituraTipo = 'Olio'; double costoFinitura = 0;
-  String verniciaturaTipo = 'Vernice trasparente'; int maniVernice = 2; double costoVerniciaturaMq = 12; double mqVerniciatura = 0;
-  double marginePercent = 30; double ivaPercent = 22;
-  int validitaGiorni = 15;
-  String clausolaMercato = "I prezzi dei materiali (legni e pannelli) sono soggetti a variazione in base all'andamento del mercato.";
-
-  double get totMqMobili => mobili.fold(0, (s,e)=> s + e.mq * e.qta);
-  double get totMlMobili => mobili.fold(0, (s,e)=> s + e.ml * e.qta);
-  double get totLegniNetto => legni.fold(0, (s,e)=> s + e.totale);
-  double get totPannelliNetto => pannelli.fold(0, (s,e)=> s + e.totale);
-  double get totManodopera => oreManodopera * costoOra;
-  double get totLevigatura => levigaturaMq * costoLevigaturaMq;
-  double get totVerniciatura => mqVerniciatura * costoVerniciaturaMq * maniVernice;
-  double get scartoLegniVal => totLegniNetto * scartoLegniPercent / 100;
-  double get scartoPannelliVal => totPannelliNetto * scartoPannelliPercent / 100;
-  double get totLegni => totLegniNetto + scartoLegniVal;
-  double get totPannelli => totPannelliNetto + scartoPannelliVal;
-  double get imponibile => totLegni + totPannelli + extraFerramenta + extraLaccatura + totManodopera + totLevigatura + costoFinitura + totVerniciatura;
-  double get utile => imponibile * marginePercent / 100;
-  double get totaleImponibile => imponibile + utile;
-  double get iva => totaleImponibile * ivaPercent / 100;
-  double get totaleIvato => totaleImponibile + iva;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Preventivo $numPrev'), centerTitle: true),
-      body: ListView(padding: const EdgeInsets.fromLTRB(12,12,12,140), children: [
-        Card(color: Colors.green.shade50, child: ListTile(leading: Icon(Icons.numbers), title: Text('Numero: $numPrev'), subtitle: Text('Progressivo automatico - Data: $dataPrev'), trailing: IconButton(icon: Icon(Icons.refresh), onPressed: _initNum))),
-        _cardMiaDitta(), const SizedBox(height:12),
-        _cardCliente(), const SizedBox(height:12),
-        _cardMobili(), const SizedBox(height:12),
-        _cardLegni(), const SizedBox(height:12),
-        _cardPannelli(), const SizedBox(height:12),
-        _cardLavorazioni(), const SizedBox(height:12),
-        _cardTotali(), const SizedBox(height:12),
-        _cardNoteLegali(), const SizedBox(height:90)
-      ]),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12),
-        child: ElevatedButton.icon(onPressed: _generaESalvaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('GENERA PDF + SALVA + CONDIVIDI'), style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(18), backgroundColor: Colors.brown, foregroundColor: Colors.white, minimumSize: Size(double.infinity, 55))),
-      ),
-    );
-  }
-
-  Widget _cardMiaDitta(){ return Card(color: Colors.brown.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Row(children: [Icon(Icons.store), SizedBox(width:8), Text('LA MIA DITTA', style: TextStyle(fontWeight: FontWeight.bold))]),
-    TextField(decoration: const InputDecoration(labelText: 'Ragione Sociale'), onChanged: (v)=> setState(()=> miaRagione=v)),
-    TextField(decoration: const InputDecoration(labelText: 'Via'), onChanged: (v)=> setState(()=> miaVia=v)),
-    Row(children: [Expanded(flex:2, child: TextField(decoration: const InputDecoration(labelText: 'Città'), onChanged: (v)=> setState(()=> miaCitta=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'Prov.'), onChanged: (v)=> setState(()=> miaProv=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'CAP'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> miaCap=v)))]),
-    Row(children: [Expanded(child: TextField(decoration: const InputDecoration(labelText: 'Telefono'), keyboardType: TextInputType.phone, onChanged: (v)=> setState(()=> mioTel=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'P.IVA'), onChanged: (v)=> setState(()=> miaPiva=v)))]),
-  ])));}
-
-  Widget _cardCliente(){ return Card(color: Colors.blue.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Row(children: [Icon(Icons.person), SizedBox(width:8), Text('CLIENTE', style: TextStyle(fontWeight: FontWeight.bold))]),
-    TextField(decoration: const InputDecoration(labelText: 'Cliente / Ragione Sociale'), onChanged: (v)=> setState(()=> cliente=v)),
-    TextField(decoration: const InputDecoration(labelText: 'Via'), onChanged: (v)=> setState(()=> cliVia=v)),
-    Row(children: [Expanded(flex:2, child: TextField(decoration: const InputDecoration(labelText: 'Città'), onChanged: (v)=> setState(()=> cliCitta=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'Prov.'), onChanged: (v)=> setState(()=> cliProv=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'CAP'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> cliCap=v)))]),
-    Row(children: [Expanded(child: TextField(decoration: const InputDecoration(labelText: 'Telefono'), keyboardType: TextInputType.phone, onChanged: (v)=> setState(()=> cliTel=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'P.IVA / CF'), onChanged: (v)=> setState(()=> cliPiva=v)))]),
-    Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'N° Preventivo', hintText: numPrev), onChanged: (v)=> setState(()=> numPrev=v))), const SizedBox(width:8), Expanded(child: TextField(decoration: InputDecoration(labelText: 'Data', hintText: dataPrev), onChanged: (v)=> setState(()=> dataPrev=v)))]),
-  ])));}
-
-  Widget _cardMobili(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.chair), const SizedBox(width:8), const Text('MOBILI - ml/mq/qta', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), IconButton(onPressed: _addMobile, icon: const Icon(Icons.add))]), ...mobili.asMap().entries.map((e){ var i=e.key; var m=e.value; return ListTile(title: Text(m.nome), subtitle: Text('ml:${m.ml} mq:${m.mq} qta:${m.qta}'), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> mobili.removeAt(i))));}), Text('Totale: ${totMlMobili.toStringAsFixed(1)} ml | ${totMqMobili.toStringAsFixed(2)} mq', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
-
-  Widget _cardLegni(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.forest), const SizedBox(width:8), const Text('LEGNI + SLIDER REGIONE', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12)), const Spacer(), IconButton(onPressed: _addLegno, icon: const Icon(Icons.add))]), Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Scarto legni %', hintText: '$scartoLegniPercent'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> scartoLegniPercent = double.tryParse(v)??15))), const SizedBox(width:8), Text('Scarto: +${scartoLegniVal.toStringAsFixed(2)}€', style: const TextStyle(color: Colors.orange))]), ...legni.asMap().entries.map((en){ var i=en.key; var l=en.value; return Card(color: Colors.green.shade50, child: ListTile(title: Text('${l.tipo} ${l.spessore}mm - ${l.mq}mq'), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Base ${l.prezzoBase}€ + Regione ${l.extraRegione.toStringAsFixed(0)}€ = ${l.prezzoMq.toStringAsFixed(0)}€/mq'), Slider(min: 0, max: 35, divisions: 35, label: '+${l.extraRegione.toStringAsFixed(0)}€', value: l.extraRegione, onChanged: (v)=> setState(()=> l.extraRegione=v)), Text('Totale: ${l.totale.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> legni.removeAt(i)))));}), Text('Netto: ${totLegniNetto.toStringAsFixed(2)}€ + ${scartoLegniPercent}% = ${totLegni.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
-
-  Widget _cardPannelli(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.layers), const SizedBox(width:8), const Text('PANNELLI + SLIDER REGIONE', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12)), const Spacer(), IconButton(onPressed: _addPannello, icon: const Icon(Icons.add))]), Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Scarto pannelli %', hintText: '$scartoPannelliPercent'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> scartoPannelliPercent = double.tryParse(v)??10))), const SizedBox(width:8), Text('Scarto: +${scartoPannelliVal.toStringAsFixed(2)}€', style: const TextStyle(color: Colors.orange))]), ...pannelli.asMap().entries.map((en){ var i=en.key; var p=en.value; return Card(color: Colors.blue.shade50, child: ListTile(title: Text('${p.tipo} ${p.spessore}mm x${p.qta}'), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Base ${p.prezzoBase}€ + Regione ${p.extraRegione.toStringAsFixed(0)}€ = ${p.prezzoPannello.toStringAsFixed(0)}€'), Slider(min: 0, max: 35, divisions: 35, label: '+${p.extraRegione.toStringAsFixed(0)}€', value: p.extraRegione, onChanged: (v)=> setState(()=> p.extraRegione=v)), Text('Totale: ${p.totale.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> pannelli.removeAt(i)))));}), Text('Netto: ${totPannelliNetto.toStringAsFixed(2)}€ + ${scartoPannelliPercent}% = ${totPannelli.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
-
-  Widget _cardLavorazioni(){ return Card(color: Colors.orange.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Row(children: [Icon(Icons.construction), SizedBox(width:8), Text('MANODOPERA - LEVIGATURA - FINITURA - VERNICIATURA', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12))]),
-    const Divider(),
-    Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Ore', hintText: '$oreManodopera'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> oreManodopera = double.tryParse(v)??0))), const SizedBox(width:8), Expanded(child: TextField(decoration: InputDecoration(labelText: '€/ora', hintText: '$costoOra'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> costoOra = double.tryParse(v)??35))), const SizedBox(width:8), Text('${totManodopera.toStringAsFixed(0)}€', style: const TextStyle(fontWeight: FontWeight.bold))]),
-    Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Mq levigare'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> levigaturaMq = double.tryParse(v)??0))), const SizedBox(width:8), Expanded(child: TextField(decoration: InputDecoration(labelText: '€/mq'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> costoLevigaturaMq = double.tryParse(v)??8))), const SizedBox(width:8), Text('${totLevigatura.toStringAsFixed(0)}€', style: const TextStyle(fontWeight: FontWeight.bold))]),
-    Row(children: [Expanded(child: DropdownButton<String>(value: finituraTipo, isExpanded: true, items: ['Olio','Olio duro','Cera','Olio + Cera','Sbiancatura','Spazzolatura'].map((e)=> DropdownMenuItem(value:e, child: Text(e))).toList(), onChanged: (v)=> setState(()=> finituraTipo=v!))), const SizedBox(width:8), Expanded(child: TextField(decoration: const InputDecoration(labelText: 'Costo €'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> costoFinitura = double.tryParse(v)??0)))]),
-    Row(children: [Expanded(child: DropdownButton<String>(value: verniciaturaTipo, isExpanded: true, items: ['Vernice trasparente','Vernice opaca','Laccatura lucida','Laccatura opaca','Laccatura RAL','Impregnante'].map((e)=> DropdownMenuItem(value:e, child: Text(e))).toList(), onChanged: (v)=> setState(()=> verniciaturaTipo=v!)))]),
-    Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Mq'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> mqVerniciatura = double.tryParse(v)??0))), const SizedBox(width:8), Expanded(child: TextField(decoration: InputDecoration(labelText: 'Mani'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> maniVernice = int.tryParse(v)??2))), const SizedBox(width:8), Expanded(child: TextField(decoration: InputDecoration(labelText: '€/mq'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> costoVerniciaturaMq = double.tryParse(v)??12)))]),
-    Text('Totale verniciatura: ${totVerniciatura.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold)),
-  ]))); }
-
-  Widget _cardTotali(){ return Card(color: Colors.brown.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [
-    TextField(decoration: const InputDecoration(labelText: 'Extra ferramenta €'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> extraFerramenta = double.tryParse(v)??0)),
-    TextField(decoration: const InputDecoration(labelText: 'Extra laccatura/trasporto €'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> extraLaccatura = double.tryParse(v)??0)),
-    TextField(decoration: InputDecoration(labelText: 'Margine % (default $marginePercent)'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> marginePercent = double.tryParse(v)??30)),
-    const Divider(),
-    _rowTot('Legni netto', totLegniNetto), _rowTot('Scarto legni ${scartoLegniPercent}%', scartoLegniVal),
-    _rowTot('Pannelli netto', totPannelliNetto), _rowTot('Scarto pannelli ${scartoPannelliPercent}%', scartoPannelliVal),
-    _rowTot('Manodopera $oreManodopera h', totManodopera), _rowTot('Levigatura', totLevigatura),
-    _rowTot('Finitura $finituraTipo', costoFinitura), _rowTot('Verniciatura x$maniVernice', totVerniciatura),
-    _rowTot('Materiale + lavorazioni', imponibile), _rowTot('Utile $marginePercent%', utile),
-    _rowTot('IMPONIBILE', totaleImponibile, bold:true), _rowTot('IVA $ivaPercent%', iva),
-    _rowTot('TOTALE IVATO', totaleIvato, bold:true, big:true),
-  ]))); }
-
-  Widget _cardNoteLegali(){
-    return Card(color: Colors.grey.shade200, child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Row(children: [Icon(Icons.gavel), SizedBox(width:8), Text('NOTE LEGALI - VALIDITÀ', style: TextStyle(fontWeight: FontWeight.bold))]),
-      DropdownButton<int>(value: validitaGiorni, isExpanded: true, items: [15,30].map((g)=> DropdownMenuItem(value:g, child: Text('Validità preventivo: $g giorni'))).toList(), onChanged: (v)=> setState(()=> validitaGiorni=v!)),
-      TextField(maxLines: 3, decoration: const InputDecoration(labelText: 'Dicitura variazione mercato', border: OutlineInputBorder()), controller: TextEditingController(text: clausolaMercato), onChanged: (v)=> setState(()=> clausolaMercato=v)),
-      const SizedBox(height:8),
-      Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, border: Border.all()), child: Text('$clausolaMercato\n\nValidità: $validitaGiorni gg dalla data $dataPrev', style: TextStyle(fontSize:11, fontStyle: FontStyle.italic))),
-    ])));
-  }
-
-  Widget _rowTot(String l, double v, {bool bold=false, bool big=false}){ return Padding(padding: const EdgeInsets.symmetric(vertical:2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: TextStyle(fontWeight: bold?FontWeight.bold:FontWeight.normal, fontSize: big?16:12)), Text('${v.toStringAsFixed(2)}€', style: TextStyle(fontWeight: bold?FontWeight.bold:FontWeight.normal, fontSize: big?16:12))])); }
-
-  void _addMobile(){ showDialog(context: context, builder: (c){ var nome='Mobile'; double ml=0,mq=0; int qta=1; return AlertDialog(title: const Text('Aggiungi Mobile'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(onChanged: (v)=> nome=v, decoration: const InputDecoration(labelText: 'Nome')), TextField(onChanged: (v)=> ml=double.tryParse(v)??0, decoration: const InputDecoration(labelText: 'ml'), keyboardType: TextInputType.number), TextField(onChanged: (v)=> mq=double.tryParse(v)??0, decoration: const InputDecoration(labelText: 'mq'), keyboardType: TextInputType.number), TextField(onChanged: (v)=> qta=int.tryParse(v)??1, decoration: const InputDecoration(labelText: 'qta'), keyboardType: TextInputType.number)]), actions: [TextButton(onPressed: (){ setState(()=> mobili.add(MobileItem(nome:nome, ml:ml, mq:mq, qta:qta))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);}); }
-  void _addLegno(){ String tipo = PriceList.legni.keys.first; int spessore = PriceList.legni[tipo]!.keys.first; double mq = 0; showDialog(context: context, builder: (c){ return StatefulBuilder(builder: (c2,setD){ double prezzo = PriceList.legni[tipo]![spessore]??0; return AlertDialog(title: const Text('Aggiungi Legno'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButton<String>(value: tipo, isExpanded: true, items: PriceList.legni.keys.map((k)=> DropdownMenuItem(value:k, child: Text(k))).toList(), onChanged: (v){ setD(()=> tipo=v!); spessore = PriceList.legni[tipo]!.keys.first; }), DropdownButton<int>(value: spessore, isExpanded: true, items: PriceList.legni[tipo]!.keys.map((s)=> DropdownMenuItem(value:s, child: Text('$s mm - ${PriceList.legni[tipo]![s]}€/mq'))).toList(), onChanged: (v)=> setD(()=> spessore=v!)), TextField(decoration: const InputDecoration(labelText: 'MQ'), keyboardType: TextInputType.number, onChanged: (v)=> mq=double.tryParse(v)??0)]), actions: [TextButton(onPressed: (){ setState(()=> legni.add(LegnoItem(tipo:tipo, spessore:spessore, mq:mq, prezzoBase:prezzo))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);});}); }
-  void _addPannello(){ String tipo = PriceList.pannelli.keys.first; int spessore = PriceList.pannelli[tipo]!.keys.first; int qta=1; showDialog(context: context, builder: (c){ return StatefulBuilder(builder: (c2,setD){ double prezzo = PriceList.pannelli[tipo]![spessore]??0; return AlertDialog(title: const Text('Aggiungi Pannello'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButton<String>(value: tipo, isExpanded: true, items: PriceList.pannelli.keys.map((k)=> DropdownMenuItem(value:k, child: Text(k, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v){ setD(()=> tipo=v!); spessore = PriceList.pannelli[tipo]!.keys.first; }), DropdownButton<int>(value: spessore, isExpanded: true, items: PriceList.pannelli[tipo]!.keys.map((s)=> DropdownMenuItem(value:s, child: Text('$s mm - ${PriceList.pannelli[tipo]![s]}€'))).toList(), onChanged: (v)=> setD(()=> spessore=v!)), TextField(decoration: const InputDecoration(labelText: 'Qta pannelli'), keyboardType: TextInputType.number, onChanged: (v)=> qta=int.tryParse(v)??1)]), actions: [TextButton(onPressed: (){ setState(()=> pannelli.add(PannelloItem(tipo:tipo, spessore:spessore, qta:qta, prezzoBase:prezzo))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);});}); }
-
-  Future<pw.Document> _buildPdfDoc() async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, build: (c)=> [
-      pw.Header(level:0, child: pw.Text('PREVENTIVO $numPrev - $dataPrev', style: pw.TextStyle(fontSize:18, fontWeight: pw.FontWeight.bold))),
-      pw.Text('DA: $miaRagione - $miaVia, $miaCap $miaCitta ($miaProv) Tel:$mioTel P.IVA:$miaPiva', style: pw.TextStyle(fontSize:10)),
-      pw.Text('A: $cliente - $cliVia, $cliCap $cliCitta ($cliProv) Tel:$cliTel P.IVA:$cliPiva', style: pw.TextStyle(fontSize:10)),
-      pw.SizedBox(height:10),
-      pw.Table.fromTextArray(headers:['Descrizione','Qta','Totale'], data:[
-        ...legni.map((l)=> ['${l.tipo} ${l.spessore}mm (${l.prezzoMq}€/mq +${l.extraRegione}€)', '${l.mq}mq', '${l.totale.toStringAsFixed(2)}€']),
-        ...pannelli.map((p)=> ['${p.tipo} ${p.spessore}mm (${p.prezzoPannello}€ +${p.extraRegione}€)', 'x${p.qta}', '${p.totale.toStringAsFixed(2)}€']),
-        ['Scarto legni ${scartoLegniPercent}%','','${scartoLegniVal.toStringAsFixed(2)}€'],
-        ['Scarto pannelli ${scartoPannelliPercent}%','','${scartoPannelliVal.toStringAsFixed(2)}€'],
-        ['Manodopera $oreManodopera h','','${totManodopera.toStringAsFixed(2)}€'],
-        ['Levigatura','','${totLevigatura.toStringAsFixed(2)}€'],
-        ['Finitura $finituraTipo','','${costoFinitura.toStringAsFixed(2)}€'],
-        ['Verniciatura $verniciaturaTipo','','${totVerniciatura.toStringAsFixed(2)}€'],
-      ]),
-      pw.SizedBox(height:10),
-      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children:[pw.Text('TOTALE IVATO:', style: pw.TextStyle(fontSize:14, fontWeight: pw.FontWeight.bold)), pw.Text('${totaleIvato.toStringAsFixed(2)}€', style: pw.TextStyle(fontSize:14, fontWeight: pw.FontWeight.bold))]),
-      pw.SizedBox(height:20),
-      pw.Container(padding: pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children:[
-        pw.Text('NOTE LEGALI:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize:10)),
-        pw.Text(clausolaMercato, style: pw.TextStyle(fontSize:9, fontStyle: pw.FontStyle.italic)),
-        pw.Text('Validità: $validitaGiorni giorni dal $dataPrev', style: pw.TextStyle(fontSize:9, fontWeight: pw.FontWeight.bold)),
-      ])),
-    ]));
-    return pdf;
-  }
-
-  Future<void> _generaESalvaPdf() async {
-    try{
-      final pdf = await _buildPdfDoc();
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$numPrev.pdf');
-      await file.writeAsBytes(await pdf.save());
-      await Share.shareXFiles([XFile(file.path)], text: 'Preventivo $numPrev - ${totaleIvato.toStringAsFixed(2)}€ - Validità $validitaGiorni giorni');
-      if(mounted){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF salvato e pronto da inviare: $numPrev.pdf')));
-        _initNum();
-      }
-    }catch(e){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e'))); }
-  }
+function addLegno(){
+  const [nome,prezzo,extra]=document.getElementById('essenza').value.split('|');
+  const mq=parseFloat(document.getElementById('legnoMq').value)||0;
+  const sp=parseFloat(document.getElementById('spessoreLegno').value)||10;
+  if(mq<=0)return;
+  legni.push({nome,prezzo:+prezzo,extra:+extra,mq,sp});
+  document.getElementById('legnoMq').value='';
+  aggiornaAnteprima();
 }
+function addPannello(){
+  const [nome,prezzo,extra]=document.getElementById('pannello').value.split('|');
+  const qta=parseFloat(document.getElementById('pannelloQta').value)||1;
+  pannelli.push({nome,prezzo:+prezzo,extra:+extra,qta});
+  aggiornaAnteprima();
+}
+function calcola(){
+  let legniNetto=0; legni.forEach(l=>legniNetto+=(l.prezzo+l.extra)*l.mq);
+  let pannelliNetto=0; pannelli.forEach(p=>pannelliNetto+=(p.prezzo+p.extra)*p.qta);
+  const scL = legniNetto * (parseFloat(document.getElementById('scartoLegni').value)||0)/100;
+  const scP = pannelliNetto * (parseFloat(document.getElementById('scartoPannelli').value)||0)/100;
+  const mano = (parseFloat(document.getElementById('manodoperaH').value)||0)*(parseFloat(document.getElementById('manodoperaPrezzo').value)||0);
+  const lev = parseFloat(document.getElementById('levigatura').value)||0;
+  const fin = parseFloat(document.getElementById('finitura').value)||0;
+  const extra = parseFloat(document.getElementById('extraLacc').value)||0;
+  const vern = parseFloat(document.getElementById('verniciatura').value)||0;
+  const materiale = legniNetto+scL+pannelliNetto+scP+mano+lev+fin+extra+vern;
+  const marginPerc = parseFloat(document.getElementById('margin').value)||30;
+  const utile = materiale * marginPerc/100;
+  const imponibile = materiale + utile;
+  const ivaPerc = parseFloat(document.getElementById('iva').value)||22;
+  const iva = imponibile * ivaPerc/100;
+  const totale = imponibile + iva;
+  return {legniNetto,scL,pannelliNetto,scP,mano,lev,fin,extra,vern,materiale,utile,imponibile,iva,totale,marginPerc,ivaPerc};
+}
+function aggiornaAnteprima(){
+  const t=calcola();
+  let html='';
+  html+=`<div class="riga-tot"><span>Legni netto</span><span>${fmtUI(t.legniNetto)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Scarto legni ${document.getElementById('scartoLegni').value}%</span><span>${fmtUI(t.scL)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Pannelli netto</span><span>${fmtUI(t.pannelliNetto)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Scarto pannelli ${document.getElementById('scartoPannelli').value}%</span><span>${fmtUI(t.scP)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Manodopera ${document.getElementById('manodoperaH').value} h</span><span>${fmtUI(t.mano)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Levigatura</span><span>${fmtUI(t.lev)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Finitura Cera</span><span>${fmtUI(t.fin)}</span></div>`;
+  if(t.extra>0) html+=`<div class="riga-tot"><span>Extra laccatura/trasporto</span><span>${fmtUI(t.extra)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Verniciatura x2</span><span>${fmtUI(t.vern)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Materiale + lavorazioni</span><span>${fmtUI(t.materiale)}</span></div>`;
+  html+=`<div class="riga-tot"><span>Utile ${t.marginPerc}%</span><span>${fmtUI(t.utile)}</span></div>`;
+  html+=`<div class="riga-tot"><b>IMPONIBILE</b><b>${fmtUI(t.imponibile)}</b></div>`;
+  html+=`<div class="riga-tot"><span>IVA ${t.ivaPerc}%</span><span>${fmtUI(t.iva)}</span></div>`;
+  html+=`<div class="riga-tot" style="border-top:2px solid #000"><b>TOTALE IVATO</b><b>${fmtUI(t.totale)}</b></div>`;
+  document.getElementById('anteprima').innerHTML=html;
+  document.getElementById('legniList').innerHTML=legni.map((l,i)=>`${l.nome} ${l.mq}mq = ${fmtUI((l.prezzo+l.extra)*l.mq)} <a href="#" onclick="legni.splice(${i},1);aggiornaAnteprima();return false">[x]</a>`).join('<br>');
+  document.getElementById('pannelliList').innerHTML=pannelli.map((p,i)=>`${p.nome} x${p.qta} = ${fmtUI((p.prezzo+p.extra)*p.qta)} <a href="#" onclick="pannelli.splice(${i},1);aggiornaAnteprima();return false">[x]</a>`).join('<br>');
+}
+function generaPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const t=calcola();
+  const cliente=document.getElementById('clienteNome').value||'Cliente';
+  const tel=document.getElementById('clienteTel').value||'';
+  const num=`PREV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*9000+1000)}`;
+  let y=10;
+  doc.setFontSize(12);
+  doc.text(`PREVENTIVO ${num} - ${new Date().toISOString().slice(0,10)}`,10,y); y+=8;
+  doc.setFontSize(9);
+  doc.text(`DA: falegnameria di Bart - Tel:3791797758`,10,y); y+=5;
+  doc.text(`A: ${cliente} Tel:${tel}`,10,y); y+=10;
+  doc.setFontSize(10);
+  // QUI USIAMO EUR PER L'INVIO - NON SPARISCE
+  doc.text(`Legni netto`,10,y); doc.text(`${fmtPDF(t.legniNetto)}`,150,y); y+=5;
+  doc.text(`Scarto legni ${document.getElementById('scartoLegni').value}%`,10,y); doc.text(`${fmtPDF(t.scL)}`,150,y); y+=5;
+  doc.text(`Pannelli netto`,10,y); doc.text(`${fmtPDF(t.pannelliNetto)}`,150,y); y+=5;
+  doc.text(`Scarto pannelli ${document.getElementById('scartoPannelli').value}%`,10,y); doc.text(`${fmtPDF(t.scP)}`,150,y); y+=5;
+  doc.text(`Manodopera ${document.getElementById('manodoperaH').value} h`,10,y); doc.text(`${fmtPDF(t.mano)}`,150,y); y+=5;
+  doc.text(`Levigatura`,10,y); doc.text(`${fmtPDF(t.lev)}`,150,y); y+=5;
+  doc.text(`Finitura Cera`,10,y); doc.text(`${fmtPDF(t.fin)}`,150,y); y+=5;
+  if(t.extra>0){doc.text(`Extra laccatura/trasporto`,10,y); doc.text(`${fmtPDF(t.extra)}`,150,y); y+=5;}
+  doc.text(`Verniciatura x2`,10,y); doc.text(`${fmtPDF(t.vern)}`,150,y); y+=5;
+  doc.text(`Materiale + lavorazioni`,10,y); doc.text(`${fmtPDF(t.materiale)}`,150,y); y+=5;
+  doc.text(`Utile ${t.marginPerc}%`,10,y); doc.text(`${fmtPDF(t.utile)}`,150,y); y+=5;
+  doc.setFont('helvetica','bold');
+  doc.text(`IMPONIBILE`,10,y); doc.text(`${fmtPDF(t.imponibile)}`,150,y); y+=6;
+  doc.setFont('helvetica','normal');
+  doc.text(`IVA ${t.ivaPerc}%`,10,y); doc.text(`${fmtPDF(t.iva)}`,150,y); y+=8;
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(`TOTALE IVATO: ${fmtPDF(t.totale)}`,10,y);
+  doc.save(`${num}.pdf`);
+}
+addManufatto();
+legni.push({nome:'Noce Nazionale',prezzo:100,extra:5,mq:30,sp:10});
+pannelli.push({nome:'Lamellare Abete',prezzo:38,extra:6,qta:5});
+aggiornaAnteprima();
+</script>
+</body>
+</html>
