@@ -5,7 +5,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const FalegnameApp());
 
@@ -50,21 +49,20 @@ class HomePage extends StatefulWidget { const HomePage({super.key}); @override S
 
 class _HomePageState extends State<HomePage> {
   @override
-  void initState(){ super.initState(); _loadProgressivo(); }
-
-  Future<void> _loadProgressivo() async {
-    final prefs = await SharedPreferences.getInstance();
-    int last = prefs.getInt('lastPrevNum') ?? 0;
-    int next = last + 1;
-    setState((){
-      numPrev = 'PREV-${next.toString().padLeft(4,'0')}';
-      dataPrev = DateTime.now().toString().substring(0,10);
-    });
+  void initState(){ super.initState(); _initNum(); }
+  void _initNum(){
+    int now = DateTime.now().millisecondsSinceEpoch % 10000;
+    numPrev = 'PREV-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}-$now';
+    dataPrev = DateTime.now().toString().substring(0,10);
+    numProgressivo = now;
   }
-  Future<void> _incrementaProgressivo() async {
-    final prefs = await SharedPreferences.getInstance();
-    int last = prefs.getInt('lastPrevNum') ?? 0;
-    await prefs.setInt('lastPrevNum', last+1);
+  int numProgressivo = 1;
+  void _incrementaProgressivo(){
+    setState((){
+      numProgressivo++;
+      int now = DateTime.now().millisecondsSinceEpoch % 10000;
+      numPrev = 'PREV-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}-$now';
+    });
   }
 
   String miaRagione = ''; String miaVia = ''; String miaCitta = ''; String miaProv = ''; String miaCap = ''; String mioTel = ''; String miaPiva = '';
@@ -101,9 +99,9 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Preventivo $numPrev - v4.6'), centerTitle: true),
+      appBar: AppBar(title: Text('Preventivo $numPrev'), centerTitle: true),
       body: ListView(padding: const EdgeInsets.fromLTRB(12,12,12,140), children: [
-        Card(color: Colors.green.shade50, child: ListTile(leading: Icon(Icons.numbers), title: Text('Numero Progressivo: $numPrev'), subtitle: Text('Si incrementa da solo ad ogni PDF - Data: $dataPrev'), trailing: IconButton(icon: Icon(Icons.refresh), onPressed: _loadProgressivo))),
+        Card(color: Colors.green.shade50, child: ListTile(leading: Icon(Icons.numbers), title: Text('Numero: $numPrev'), subtitle: Text('Automatico - Data: $dataPrev'), trailing: IconButton(icon: Icon(Icons.refresh), onPressed: _initNum))),
         _cardMiaDitta(), const SizedBox(height:12),
         _cardCliente(), const SizedBox(height:12),
         _cardMobili(), const SizedBox(height:12),
@@ -128,7 +126,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ... TUTTE LE CARD IDENTICHE ALLA v4.5 (le accorcio per spazio ma sono uguali)
   Widget _cardMiaDitta(){ return Card(color: Colors.brown.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     const Row(children: [Icon(Icons.store), SizedBox(width:8), Text('LA MIA DITTA', style: TextStyle(fontWeight: FontWeight.bold))]),
     TextField(decoration: const InputDecoration(labelText: 'Ragione Sociale'), onChanged: (v)=> setState(()=> miaRagione=v)),
@@ -193,7 +190,6 @@ class _HomePageState extends State<HomePage> {
   void _addLegno(){ String tipo = PriceList.legni.keys.first; int spessore = PriceList.legni[tipo]!.keys.first; double mq = 0; showDialog(context: context, builder: (c){ return StatefulBuilder(builder: (c2,setD){ double prezzo = PriceList.legni[tipo]![spessore]??0; return AlertDialog(title: const Text('Aggiungi Legno'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButton<String>(value: tipo, isExpanded: true, items: PriceList.legni.keys.map((k)=> DropdownMenuItem(value:k, child: Text(k))).toList(), onChanged: (v){ setD(()=> tipo=v!); spessore = PriceList.legni[tipo]!.keys.first; }), DropdownButton<int>(value: spessore, isExpanded: true, items: PriceList.legni[tipo]!.keys.map((s)=> DropdownMenuItem(value:s, child: Text('$s mm - ${PriceList.legni[tipo]![s]}€/mq'))).toList(), onChanged: (v)=> setD(()=> spessore=v!)), TextField(decoration: const InputDecoration(labelText: 'MQ'), keyboardType: TextInputType.number, onChanged: (v)=> mq=double.tryParse(v)??0)]), actions: [TextButton(onPressed: (){ setState(()=> legni.add(LegnoItem(tipo:tipo, spessore:spessore, mq:mq, prezzoBase:prezzo))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);});}); }
   void _addPannello(){ String tipo = PriceList.pannelli.keys.first; int spessore = PriceList.pannelli[tipo]!.keys.first; int qta=1; showDialog(context: context, builder: (c){ return StatefulBuilder(builder: (c2,setD){ double prezzo = PriceList.pannelli[tipo]![spessore]??0; return AlertDialog(title: const Text('Aggiungi Pannello'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButton<String>(value: tipo, isExpanded: true, items: PriceList.pannelli.keys.map((k)=> DropdownMenuItem(value:k, child: Text(k, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v){ setD(()=> tipo=v!); spessore = PriceList.pannelli[tipo]!.keys.first; }), DropdownButton<int>(value: spessore, isExpanded: true, items: PriceList.pannelli[tipo]!.keys.map((s)=> DropdownMenuItem(value:s, child: Text('$s mm - ${PriceList.pannelli[tipo]![s]}€'))).toList(), onChanged: (v)=> setD(()=> spessore=v!)), TextField(decoration: const InputDecoration(labelText: 'Qta pannelli'), keyboardType: TextInputType.number, onChanged: (v)=> qta=int.tryParse(v)??1)]), actions: [TextButton(onPressed: (){ setState(()=> pannelli.add(PannelloItem(tipo:tipo, spessore:spessore, qta:qta, prezzoBase:prezzo))); Navigator.pop(c);}, child: const Text('Aggiungi'))]);});}); }
 
-  // ===== PDF VERO =====
   Future<pw.Document> _buildPdfDoc() async {
     final pdf = pw.Document();
     pdf.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, build: (c)=> [
@@ -202,8 +198,8 @@ class _HomePageState extends State<HomePage> {
       pw.Text('A: $cliente - $cliVia, $cliCap $cliCitta ($cliProv) Tel:$cliTel P.IVA:$cliPiva', style: pw.TextStyle(fontSize:10)),
       pw.SizedBox(height:10),
       pw.Table.fromTextArray(headers:['Descrizione','Qta','Totale'], data:[
-        ...legni.map((l)=> ['${l.tipo} ${l.spessore}mm (${l.prezzoMq}€/mq con regione +${l.extraRegione}€)', '${l.mq}mq', '${l.totale.toStringAsFixed(2)}€']),
-        ...pannelli.map((p)=> ['${p.tipo} ${p.spessore}mm (${p.prezzoPannello}€ con regione +${p.extraRegione}€)', 'x${p.qta}', '${p.totale.toStringAsFixed(2)}€']),
+        ...legni.map((l)=> ['${l.tipo} ${l.spessore}mm (${l.prezzoMq}€/mq con +${l.extraRegione}€ regione)', '${l.mq}mq', '${l.totale.toStringAsFixed(2)}€']),
+        ...pannelli.map((p)=> ['${p.tipo} ${p.spessore}mm (${p.prezzoPannello}€ con +${p.extraRegione}€)', 'x${p.qta}', '${p.totale.toStringAsFixed(2)}€']),
         ['Scarto legni ${scartoLegniPercent}%','','${scartoLegniVal.toStringAsFixed(2)}€'],
         ['Scarto pannelli ${scartoPannelliPercent}%','','${scartoPannelliVal.toStringAsFixed(2)}€'],
         ['Manodopera $oreManodopera h x $costoOra€','','${totManodopera.toStringAsFixed(2)}€'],
@@ -237,10 +233,9 @@ class _HomePageState extends State<HomePage> {
       final file = File('${dir.path}/$numPrev.pdf');
       await file.writeAsBytes(await pdf.save());
       _ultimoPdfPath = file.path;
-      await _incrementaProgressivo();
       if(mounted){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF salvato: $numPrev.pdf - Prossimo sarà ${numPrev.split('-').first}-${(int.parse(numPrev.split('-').last)+1).toString().padLeft(4,'0')}')));
-        await _loadProgressivo();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF salvato: $numPrev.pdf in ${dir.path}')));
+        _incrementaProgressivo();
       }
     }catch(e){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore PDF: $e'))); }
   }
@@ -251,7 +246,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _condividiUltimoPdf() async {
-    if(_ultimoPdfPath==null){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Prima genera il PDF!'))); return; }
+    if(_ultimoPdfPath==null){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Prima genera il PDF con il bottone marrone!'))); return; }
     await Share.shareXFiles([XFile(_ultimoPdfPath!)], text: 'Preventivo $numPrev - ${totaleIvato.toStringAsFixed(2)}€ - Validità $validitaGiorni giorni');
   }
 }
