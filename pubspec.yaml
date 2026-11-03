@@ -1,19 +1,19 @@
 name: falegname_pro
-description: Falegname Pro - Preventivi Professionali con Listino Nazionale Completo
+description: Preventivo Falegname Pro v4.6
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+6
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  pdf: ^3.10.7
-  path_provider: ^2.1.1
-  share_plus: ^7.2.2
-  printing: ^5.11.0
+  cupertino_icons: ^1.0.5
+  pdf: ^3.11.3
+  printing: ^5.13.0
+  path_provider: ^2.1.5
+  share_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -22,5 +22,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/
