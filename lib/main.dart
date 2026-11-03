@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -54,15 +53,6 @@ class _HomePageState extends State<HomePage> {
     int now = DateTime.now().millisecondsSinceEpoch % 10000;
     numPrev = 'PREV-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}-$now';
     dataPrev = DateTime.now().toString().substring(0,10);
-    numProgressivo = now;
-  }
-  int numProgressivo = 1;
-  void _incrementaProgressivo(){
-    setState((){
-      numProgressivo++;
-      int now = DateTime.now().millisecondsSinceEpoch % 10000;
-      numPrev = 'PREV-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}-$now';
-    });
   }
 
   String miaRagione = ''; String miaVia = ''; String miaCitta = ''; String miaProv = ''; String miaCap = ''; String mioTel = ''; String miaPiva = '';
@@ -101,7 +91,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: Text('Preventivo $numPrev'), centerTitle: true),
       body: ListView(padding: const EdgeInsets.fromLTRB(12,12,12,140), children: [
-        Card(color: Colors.green.shade50, child: ListTile(leading: Icon(Icons.numbers), title: Text('Numero: $numPrev'), subtitle: Text('Automatico - Data: $dataPrev'), trailing: IconButton(icon: Icon(Icons.refresh), onPressed: _initNum))),
+        Card(color: Colors.green.shade50, child: ListTile(leading: Icon(Icons.numbers), title: Text('Numero: $numPrev'), subtitle: Text('Progressivo automatico - Data: $dataPrev'), trailing: IconButton(icon: Icon(Icons.refresh), onPressed: _initNum))),
         _cardMiaDitta(), const SizedBox(height:12),
         _cardCliente(), const SizedBox(height:12),
         _cardMobili(), const SizedBox(height:12),
@@ -113,15 +103,7 @@ class _HomePageState extends State<HomePage> {
       ]),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ElevatedButton.icon(onPressed: _generaESalvaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('GENERA PDF VERO + SALVA'), style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16), backgroundColor: Colors.brown, foregroundColor: Colors.white, minimumSize: Size(double.infinity, 50))),
-          SizedBox(height:8),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: _anteprimaPdf, icon: Icon(Icons.visibility), label: Text('Anteprima'))),
-            SizedBox(width:8),
-            Expanded(child: OutlinedButton.icon(onPressed: _condividiUltimoPdf, icon: Icon(Icons.share), label: Text('Invia WhatsApp'))),
-          ])
-        ]),
+        child: ElevatedButton.icon(onPressed: _generaESalvaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('GENERA PDF + SALVA + CONDIVIDI'), style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(18), backgroundColor: Colors.brown, foregroundColor: Colors.white, minimumSize: Size(double.infinity, 55))),
       ),
     );
   }
@@ -145,7 +127,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _cardMobili(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.chair), const SizedBox(width:8), const Text('MOBILI - ml/mq/qta', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), IconButton(onPressed: _addMobile, icon: const Icon(Icons.add))]), ...mobili.asMap().entries.map((e){ var i=e.key; var m=e.value; return ListTile(title: Text(m.nome), subtitle: Text('ml:${m.ml} mq:${m.mq} qta:${m.qta}'), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> mobili.removeAt(i))));}), Text('Totale: ${totMlMobili.toStringAsFixed(1)} ml | ${totMqMobili.toStringAsFixed(2)} mq', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
 
-  Widget _cardLegni(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.forest), const SizedBox(width:8), const Text('LEGNI + SCARTO + SLIDER REGIONE', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12)), const Spacer(), IconButton(onPressed: _addLegno, icon: const Icon(Icons.add))]), Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Scarto legni %', hintText: '$scartoLegniPercent'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> scartoLegniPercent = double.tryParse(v)??15))), const SizedBox(width:8), Text('Scarto: +${scartoLegniVal.toStringAsFixed(2)}€', style: const TextStyle(color: Colors.orange))]), ...legni.asMap().entries.map((en){ var i=en.key; var l=en.value; return Card(color: Colors.green.shade50, child: ListTile(title: Text('${l.tipo} ${l.spessore}mm - ${l.mq}mq'), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Base ${l.prezzoBase}€ + Regione ${l.extraRegione.toStringAsFixed(0)}€ = ${l.prezzoMq.toStringAsFixed(0)}€/mq'), Slider(min: 0, max: 35, divisions: 35, label: '+${l.extraRegione.toStringAsFixed(0)}€', value: l.extraRegione, onChanged: (v)=> setState(()=> l.extraRegione=v)), Text('Totale: ${l.totale.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> legni.removeAt(i)))));}), Text('Netto: ${totLegniNetto.toStringAsFixed(2)}€ + ${scartoLegniPercent}% = ${totLegni.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
+  Widget _cardLegni(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.forest), const SizedBox(width:8), const Text('LEGNI + SLIDER REGIONE', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12)), const Spacer(), IconButton(onPressed: _addLegno, icon: const Icon(Icons.add))]), Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Scarto legni %', hintText: '$scartoLegniPercent'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> scartoLegniPercent = double.tryParse(v)??15))), const SizedBox(width:8), Text('Scarto: +${scartoLegniVal.toStringAsFixed(2)}€', style: const TextStyle(color: Colors.orange))]), ...legni.asMap().entries.map((en){ var i=en.key; var l=en.value; return Card(color: Colors.green.shade50, child: ListTile(title: Text('${l.tipo} ${l.spessore}mm - ${l.mq}mq'), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Base ${l.prezzoBase}€ + Regione ${l.extraRegione.toStringAsFixed(0)}€ = ${l.prezzoMq.toStringAsFixed(0)}€/mq'), Slider(min: 0, max: 35, divisions: 35, label: '+${l.extraRegione.toStringAsFixed(0)}€', value: l.extraRegione, onChanged: (v)=> setState(()=> l.extraRegione=v)), Text('Totale: ${l.totale.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> legni.removeAt(i)))));}), Text('Netto: ${totLegniNetto.toStringAsFixed(2)}€ + ${scartoLegniPercent}% = ${totLegni.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
 
   Widget _cardPannelli(){ return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.layers), const SizedBox(width:8), const Text('PANNELLI + SLIDER REGIONE', style: TextStyle(fontWeight: FontWeight.bold, fontSize:12)), const Spacer(), IconButton(onPressed: _addPannello, icon: const Icon(Icons.add))]), Row(children: [Expanded(child: TextField(decoration: InputDecoration(labelText: 'Scarto pannelli %', hintText: '$scartoPannelliPercent'), keyboardType: TextInputType.number, onChanged: (v)=> setState(()=> scartoPannelliPercent = double.tryParse(v)??10))), const SizedBox(width:8), Text('Scarto: +${scartoPannelliVal.toStringAsFixed(2)}€', style: const TextStyle(color: Colors.orange))]), ...pannelli.asMap().entries.map((en){ var i=en.key; var p=en.value; return Card(color: Colors.blue.shade50, child: ListTile(title: Text('${p.tipo} ${p.spessore}mm x${p.qta}'), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Base ${p.prezzoBase}€ + Regione ${p.extraRegione.toStringAsFixed(0)}€ = ${p.prezzoPannello.toStringAsFixed(0)}€'), Slider(min: 0, max: 35, divisions: 35, label: '+${p.extraRegione.toStringAsFixed(0)}€', value: p.extraRegione, onChanged: (v)=> setState(()=> p.extraRegione=v)), Text('Totale: ${p.totale.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]), trailing: IconButton(icon: const Icon(Icons.delete), onPressed: ()=> setState(()=> pannelli.removeAt(i)))));}), Text('Netto: ${totPannelliNetto.toStringAsFixed(2)}€ + ${scartoPannelliPercent}% = ${totPannelli.toStringAsFixed(2)}€', style: const TextStyle(fontWeight: FontWeight.bold))]))); }
 
@@ -198,33 +180,26 @@ class _HomePageState extends State<HomePage> {
       pw.Text('A: $cliente - $cliVia, $cliCap $cliCitta ($cliProv) Tel:$cliTel P.IVA:$cliPiva', style: pw.TextStyle(fontSize:10)),
       pw.SizedBox(height:10),
       pw.Table.fromTextArray(headers:['Descrizione','Qta','Totale'], data:[
-        ...legni.map((l)=> ['${l.tipo} ${l.spessore}mm (${l.prezzoMq}€/mq con +${l.extraRegione}€ regione)', '${l.mq}mq', '${l.totale.toStringAsFixed(2)}€']),
-        ...pannelli.map((p)=> ['${p.tipo} ${p.spessore}mm (${p.prezzoPannello}€ con +${p.extraRegione}€)', 'x${p.qta}', '${p.totale.toStringAsFixed(2)}€']),
+        ...legni.map((l)=> ['${l.tipo} ${l.spessore}mm (${l.prezzoMq}€/mq +${l.extraRegione}€)', '${l.mq}mq', '${l.totale.toStringAsFixed(2)}€']),
+        ...pannelli.map((p)=> ['${p.tipo} ${p.spessore}mm (${p.prezzoPannello}€ +${p.extraRegione}€)', 'x${p.qta}', '${p.totale.toStringAsFixed(2)}€']),
         ['Scarto legni ${scartoLegniPercent}%','','${scartoLegniVal.toStringAsFixed(2)}€'],
         ['Scarto pannelli ${scartoPannelliPercent}%','','${scartoPannelliVal.toStringAsFixed(2)}€'],
-        ['Manodopera $oreManodopera h x $costoOra€','','${totManodopera.toStringAsFixed(2)}€'],
-        ['Levigatura $levigaturaMq mq','','${totLevigatura.toStringAsFixed(2)}€'],
+        ['Manodopera $oreManodopera h','','${totManodopera.toStringAsFixed(2)}€'],
+        ['Levigatura','','${totLevigatura.toStringAsFixed(2)}€'],
         ['Finitura $finituraTipo','','${costoFinitura.toStringAsFixed(2)}€'],
-        ['Verniciatura $verniciaturaTipo ${mqVerniciatura}mq x$maniVernice','','${totVerniciatura.toStringAsFixed(2)}€'],
-        ['Ferramenta + Laccatura','','${(extraFerramenta+extraLaccatura).toStringAsFixed(2)}€'],
+        ['Verniciatura $verniciaturaTipo','','${totVerniciatura.toStringAsFixed(2)}€'],
       ]),
       pw.SizedBox(height:10),
-      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children:[pw.Text('Imponibile:'), pw.Text('${totaleImponibile.toStringAsFixed(2)}€', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))]),
-      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children:[pw.Text('IVA ${ivaPercent}%:'), pw.Text('${iva.toStringAsFixed(2)}€')]),
-      pw.Divider(),
       pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children:[pw.Text('TOTALE IVATO:', style: pw.TextStyle(fontSize:14, fontWeight: pw.FontWeight.bold)), pw.Text('${totaleIvato.toStringAsFixed(2)}€', style: pw.TextStyle(fontSize:14, fontWeight: pw.FontWeight.bold))]),
       pw.SizedBox(height:20),
       pw.Container(padding: pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children:[
         pw.Text('NOTE LEGALI:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize:10)),
         pw.Text(clausolaMercato, style: pw.TextStyle(fontSize:9, fontStyle: pw.FontStyle.italic)),
-        pw.SizedBox(height:4),
-        pw.Text('Validità preventivo: $validitaGiorni giorni dalla data $dataPrev. Oltre tale termine i prezzi sono soggetti a variazione.', style: pw.TextStyle(fontSize:9, fontWeight: pw.FontWeight.bold)),
+        pw.Text('Validità: $validitaGiorni giorni dal $dataPrev', style: pw.TextStyle(fontSize:9, fontWeight: pw.FontWeight.bold)),
       ])),
     ]));
     return pdf;
   }
-
-  String? _ultimoPdfPath;
 
   Future<void> _generaESalvaPdf() async {
     try{
@@ -232,21 +207,11 @@ class _HomePageState extends State<HomePage> {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$numPrev.pdf');
       await file.writeAsBytes(await pdf.save());
-      _ultimoPdfPath = file.path;
+      await Share.shareXFiles([XFile(file.path)], text: 'Preventivo $numPrev - ${totaleIvato.toStringAsFixed(2)}€ - Validità $validitaGiorni giorni');
       if(mounted){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF salvato: $numPrev.pdf in ${dir.path}')));
-        _incrementaProgressivo();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF salvato e pronto da inviare: $numPrev.pdf')));
+        _initNum();
       }
-    }catch(e){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore PDF: $e'))); }
-  }
-
-  Future<void> _anteprimaPdf() async {
-    final pdf = await _buildPdfDoc();
-    await Printing.layoutPdf(onLayout: (f)=> pdf.save());
-  }
-
-  Future<void> _condividiUltimoPdf() async {
-    if(_ultimoPdfPath==null){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Prima genera il PDF con il bottone marrone!'))); return; }
-    await Share.shareXFiles([XFile(_ultimoPdfPath!)], text: 'Preventivo $numPrev - ${totaleIvato.toStringAsFixed(2)}€ - Validità $validitaGiorni giorni');
+    }catch(e){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e'))); }
   }
 }
