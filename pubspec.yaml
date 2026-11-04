@@ -1,4 +1,4 @@
-name: bart_preventivi_pro
+uname: bart_preventivi_pro
 description: Bart Preventivi PRO v10.0 - Si parte da 1 pannello - Vendita Telegram 9,99/mese
 publish_to: 'none'
 version: 10.0.0+10
@@ -13,7 +13,7 @@ dependencies:
   pdf: ^3.10.7
   path_provider: ^2.1.2
   share_plus: ^8.0.2
-  printing: ^5.11.1
+  printing: ^5.13.4
 
 dev_dependencies:
   flutter_test:
