@@ -10,13 +10,11 @@ workflows:
       - name: Fix project and SDK
         script: |
           flutter create . --platforms=android --project-name bart_bundle --org com.bart --no-pub
+          sed -i '' 's/flutter.compileSdkVersion/36/g' android/app/build.gradle || sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle
+          sed -i '' 's/flutter.targetSdkVersion/36/g' android/app/build.gradle || sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle
           flutter pub get
       - name: Build APK
         script: |
           flutter build apk --release --no-tree-shake-icons
     artifacts:
       - build/**/outputs/**/*.apk
-    publishing:
-      email:
-        recipients:
-          - bart@example.com
