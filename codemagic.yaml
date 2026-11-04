@@ -1,24 +1,25 @@
 workflows:
   android-workflow:
-    name: Android Workflow
+    name: Android v8.7 Falegname
     instance_type: mac_mini_m2
     max_build_duration: 20
     environment:
       flutter: stable
       java: 17
     scripts:
-      - name: Fix project and SDK
+      - name: Fix SDK only - non tocca lib/
         script: |
-          flutter create . --platforms=android --project-name bart_bundle --org com.bart --no-pub
-          GRADLE_FILE=$(ls android/app/build.gradle* | head -n1)
-          echo "Fixing $GRADLE_FILE"
+          GRADLE_FILE=$(ls android/app/build.gradle* 2>/dev/null | head -n1)
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "Cartella android mancante, la creo senza toccare lib/"
+            flutter create . --platforms=android --project-name bart_bundle --org com.bart --no-pub
+            GRADLE_FILE=$(ls android/app/build.gradle* | head -n1)
+          fi
+          echo "Fix $GRADLE_FILE -> SDK 36"
           sed -i.bak "s/flutter.compileSdkVersion/36/g" "$GRADLE_FILE" || true
-          sed -i.bak "s/flutter.targetSdkVersion/36/g" "$GRADLE_FILE" || true
-          sed -i.bak "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/g" "$GRADLE_FILE" || true
           sed -i.bak "s/compileSdk = flutter.compileSdkVersion/compileSdk = 36/g" "$GRADLE_FILE" || true
-          sed -i.bak "s/targetSdk = flutter.targetSdkVersion/targetSdk = 36/g" "$GRADLE_FILE" || true
           flutter pub get
-      - name: Build APK
+      - name: Build APK v8.7 Falegname
         script: |
           flutter build apk --release --no-tree-shake-icons
     artifacts:
