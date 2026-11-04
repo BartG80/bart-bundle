@@ -1,6 +1,6 @@
-uname: bart_preventivi_pro
-description: Bart Preventivi PRO v10.0 - Si parte da 1 pannello - Vendita Telegram 9,99/mese
-publish_to: 'none'
+name: bart_bundle
+description: Bart Preventivi PRO - Si parte da 1 pannello
+publish_to: none
 version: 10.0.0+10
 
 environment:
