@@ -3,54 +3,46 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-void main() {
-  runApp(const BartApp());
-}
+void main() { runApp(const BartApp()); }
 
 class BartApp extends StatelessWidget {
   const BartApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v8.7',
+      title: 'Bart v8.9 GENERICA',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.brown,
-        useMaterial3: false,
-      ),
+      theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
     );
   }
 }
 
-// ================= LEGNO =================
 class LegnoItem {
   String essenza;
   double prezzo;
   double extra;
   int lunghezzaMm;
+  int larghezzaMm;
   int spessoreMm;
   int qty;
-
   LegnoItem({
     this.essenza = 'Pino',
     this.prezzo = 0,
     this.extra = 0,
     this.lunghezzaMm = 2000,
+    this.larghezzaMm = 100,
     this.spessoreMm = 30,
     this.qty = 1,
   });
 }
 
-// ================= PANNELLO =================
 class PannelloItem {
   String tipo;
   double prezzo;
   double extra;
   int spessoreMm;
   int qty;
-
   PannelloItem({
     this.tipo = 'Multistrato Okume',
     this.prezzo = 0,
@@ -60,18 +52,30 @@ class PannelloItem {
   });
 }
 
-// ================= MANUFATTO =================
+// MANUFATTO: L = Larghezza, H = Altezza, P = Profondita, Lunghezza solo per Top
 class ManufattoItem {
   TextEditingController nome = TextEditingController();
-  TextEditingController l = TextEditingController();
-  TextEditingController ll = TextEditingController();
-  TextEditingController h = TextEditingController();
-  TextEditingController p = TextEditingController();
+  TextEditingController larghezza = TextEditingController();
+  TextEditingController altezza = TextEditingController();
+  TextEditingController profondita = TextEditingController();
+  TextEditingController lunghezzaTop = TextEditingController();
+  int qty = 1;
+}
+
+class LavorazioneItem {
+  String nome;
+  TextEditingController ore = TextEditingController(text: '0');
+  TextEditingController prezzoOra = TextEditingController(text: '0');
+  LavorazioneItem(this.nome);
+  double totale() {
+    double o = double.tryParse(ore.text.replaceAll(',', '.')) ?? 0;
+    double pr = double.tryParse(prezzoOra.text.replaceAll(',', '.')) ?? 0;
+    return o * pr;
+  }
 }
 
 class PrevPage extends StatefulWidget {
   const PrevPage({super.key});
-
   @override
   State<PrevPage> createState() => _S();
 }
@@ -79,14 +83,13 @@ class PrevPage extends StatefulWidget {
 class _S extends State<PrevPage> {
   int prog = 9;
 
-  // FALEGNAME
   final falNome = TextEditingController();
   final falInd = TextEditingController();
+  final falProvincia = TextEditingController();
   final falPiva = TextEditingController();
   final falTel = TextEditingController();
   final falEmail = TextEditingController();
 
-  // CLIENTE
   final cliNome = TextEditingController();
   final cliInd = TextEditingController();
   final cliCap = TextEditingController();
@@ -94,112 +97,67 @@ class _S extends State<PrevPage> {
   final cliEmail = TextEditingController();
   final cliCF = TextEditingController();
 
-  // LAVORAZIONI
-  final manodopera = TextEditingController(text: '0');
-  final levigatura = TextEditingController(text: '0');
-  final finitura = TextEditingController(text: '0');
-  final verniciatura = TextEditingController(text: '0');
   final utile = TextEditingController(text: '0');
 
   List<LegnoItem> legni = [];
   List<PannelloItem> pannelli = [];
   List<ManufattoItem> manufatti = [];
-
-  final essenze = [
-    'Pino',
-    'Abete',
-    'Faggio',
-    'Frassino',
-    'Rovere',
-    'Castagno',
-    'Noce',
-    'Ciliegio',
-    'Canaletto',
-    'Wenge',
-    'Teak'
+  List<LavorazioneItem> lavorazioni = [
+    LavorazioneItem('Manodopera'),
+    LavorazioneItem('Levigatura'),
+    LavorazioneItem('Finitura'),
+    LavorazioneItem('Verniciatura'),
   ];
 
-  final tipiPann = [
-    'Multistrato Okume',
-    'Multistrato Betulla',
-    'Multistrato Pino Fenolico',
-    'Multistrato Pioppo',
-    'Multistrato Faggio',
-    'Multistrato Rovere',
-    'Lamellare Pino',
-    'Lamellare Faggio',
-    'Lamellare Rovere',
-    'Lamellare Abete',
-    'MDF',
-    'Truciolare',
-    'Marino',
-    'OSB',
-    'Listellare'
-  ];
-
+  final essenze = ['Pino', 'Abete', 'Faggio', 'Frassino', 'Rovere', 'Castagno', 'Noce', 'Ciliegio', 'Canaletto', 'Wenge', 'Teak'];
+  final tipiPann = ['Multistrato Okume', 'Multistrato Betulla', 'Multistrato Pino Fenolico', 'Multistrato Pioppo', 'Multistrato Faggio', 'Multistrato Rovere', 'Lamellare Pino', 'Lamellare Faggio', 'Lamellare Rovere', 'Lamellare Abete', 'MDF', 'Truciolare', 'Marino', 'OSB', 'Listellare'];
   final spessoriPann = [4, 6, 8, 10, 12, 15, 18, 20, 25, 27, 30];
   final spessoriLegno = [20, 25, 30, 40, 50, 60, 70];
-  final lunghezzeLegno = [1000, 2000, 4000];
 
-  double parse(TextEditingController c) {
-    return double.tryParse(c.text.replaceAll(',', '.')) ?? 0;
-  }
+  double parse(TextEditingController c) => double.tryParse(c.text.replaceAll(',', '.')) ?? 0;
 
+  // CALCOLO MQ - Mobile: L x H / Top: Lunghezza x L
   double mqSingolo(ManufattoItem m) {
-    double L = double.tryParse(m.l.text.replaceAll(',', '.')) ?? 0;
-    double l = double.tryParse(m.ll.text.replaceAll(',', '.')) ?? 0;
-    if (L == 0 || l == 0) return 0;
-    return (L * l) / 1000000;
+    double L = double.tryParse(m.larghezza.text.replaceAll(',', '.')) ?? 0;
+    double H = double.tryParse(m.altezza.text.replaceAll(',', '.')) ?? 0;
+    double lungTop = double.tryParse(m.lunghezzaTop.text.replaceAll(',', '.')) ?? 0;
+    if (lungTop > 0 && L > 0) return (lungTop * L) / 1000000;
+    if (L == 0 || H == 0) return 0;
+    return (L * H) / 1000000;
   }
 
   double totMq() {
     double t = 0;
-    for (var m in manufatti) {
-      t += mqSingolo(m);
-    }
+    for (var m in manufatti) t += mqSingolo(m) * m.qty;
+    return t;
+  }
+
+  double totLavorazioni() {
+    double t = 0;
+    for (var l in lavorazioni) t += l.totale();
     return t;
   }
 
   double calcolaTot() {
-    if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty) {
-      return 0;
-    }
+    if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty && totLavorazioni() == 0) return 0;
     double mq = totMq();
-    if (mq == 0) return 0;
-
     double mat = 0;
-    for (var l in legni) {
-      mat += (l.prezzo + l.extra) * l.qty * mq;
-    }
-    for (var p in pannelli) {
-      mat += (p.prezzo + p.extra) * p.qty * mq;
-    }
-
-    double lavori = parse(manodopera) +
-        parse(levigatura) +
-        parse(finitura) +
-        parse(verniciatura);
-
-    double sub = mat + lavori;
+    for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (mq == 0 ? 1 : mq);
+    for (var p in pannelli) mat += (p.prezzo + p.extra) * p.qty * (mq == 0 ? 1 : mq);
+    if (mq == 0 && (legni.isNotEmpty || pannelli.isNotEmpty)) mat = 0;
+    double sub = mat + totLavorazioni();
     double u = parse(utile);
     return sub + (sub * u / 100);
   }
 
+  double calcolaIva() => calcolaTot() * 0.22;
+  String foroTesto() => falProvincia.text.isEmpty ? '________' : falProvincia.text;
+
   void pulisci() {
     setState(() {
-      cliNome.clear();
-      cliInd.clear();
-      cliCap.clear();
-      cliTel.clear();
-      cliEmail.clear();
-      cliCF.clear();
-      legni.clear();
-      pannelli.clear();
-      manufatti.clear();
-      manodopera.text = '0';
-      levigatura.text = '0';
-      finitura.text = '0';
-      verniciatura.text = '0';
+      cliNome.clear(); cliInd.clear(); cliCap.clear(); cliTel.clear(); cliEmail.clear(); cliCF.clear();
+      legni.clear(); pannelli.clear(); manufatti.clear();
+      for (var l in lavorazioni) { l.ore.text = '0'; l.prezzoOra.text = '0'; }
       utile.text = '0';
       prog++;
     });
@@ -209,515 +167,160 @@ class _S extends State<PrevPage> {
     final d = pw.Document();
     double mq = totMq();
     double tot = calcolaTot();
-    double iva = tot * 0.22;
-
-    d.addPage(
-      pw.MultiPage(
-        build: (c) => [
-          pw.Text(
-            'PREVENTIVO N. ${prog.toString().padLeft(3, '0')} - Bart v8.7',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(8),
-            decoration: pw.BoxDecoration(border: pw.Border.all()),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                    'FALEGNAME: ${falNome.text} - ${falInd.text} - P.IVA ${falPiva.text}'),
-                pw.Text('Tel ${falTel.text} - ${falEmail.text}'),
-              ],
-            ),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(8),
-            decoration: pw.BoxDecoration(border: pw.Border.all()),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('CLIENTE: ${cliNome.text}'),
-                pw.Text('${cliInd.text} - CAP ${cliCap.text}'),
-                pw.Text(
-                    'Tel ${cliTel.text} - Email ${cliEmail.text} - CF ${cliCF.text}'),
-              ],
-            ),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Text(
-            'MANUFATTI (${manufatti.length}) - TOT MQ: ${mq.toStringAsFixed(2)}',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          for (var m in manufatti)
-            pw.Text(
-                '${m.nome.text} - L ${m.l.text}mm x l ${m.ll.text}mm x H ${m.h.text}mm x P ${m.p.text}mm - Mq ${mqSingolo(m).toStringAsFixed(2)}'),
-          pw.SizedBox(height: 6),
-          pw.Text('LEGNI:'),
-          for (var l in legni)
-            pw.Text(
-                '${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo fisso ${l.prezzo.toStringAsFixed(0)}€ + extra ${l.extra.toStringAsFixed(0)}€'),
-          pw.Text('PANNELLI:'),
-          for (var p in pannelli)
-            pw.Text(
-                '${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo fisso ${p.prezzo.toStringAsFixed(0)}€ + extra ${p.extra.toStringAsFixed(0)}€'),
-          pw.SizedBox(height: 6),
-          pw.Text(
-              'Manodopera: ${manodopera.text}€ - Levigatura: ${levigatura.text}€ - Finitura: ${finitura.text}€ - Verniciatura: ${verniciatura.text}€'),
-          pw.SizedBox(height: 10),
-          pw.Text(
-            'TOTALE: ${tot.toStringAsFixed(2)}€ + IVA 22% ${iva.toStringAsFixed(2)}€ = ${(tot + iva).toStringAsFixed(2)}€',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 14),
-          pw.Text(
-            'NOTE LEGALI:',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text(
-              '1. Validità 15 giorni (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro Mantova'),
-        ],
-      ),
-    );
+    double iva = calcolaIva();
+    d.addPage(pw.MultiPage(build: (c) => [
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v8.9 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 8),
+      pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
+        pw.Text('Tel ${falTel.text} - ${falEmail.text}'),
+      ])),
+      pw.SizedBox(height: 8),
+      pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text('CLIENTE: ${cliNome.text}'),
+        pw.Text('${cliInd.text} - CAP ${cliCap.text}'),
+        pw.Text('Tel ${cliTel.text} - Email ${cliEmail.text} - CF ${cliCF.text}'),
+      ])),
+      pw.SizedBox(height: 10),
+      pw.Text('MANUFATTI (${manufatti.length}) - TOT MQ: ${mq.toStringAsFixed(3)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+      for (var m in manufatti) pw.Text('${m.qty}x ${m.nome.text} - L ${m.larghezza.text}mm (Larghezza) x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
+      pw.SizedBox(height: 6),
+      pw.Text('LEGNI:'),
+      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)}€ + extra ${l.extra.toStringAsFixed(0)}€'),
+      pw.Text('PANNELLI:'),
+      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo ${p.prezzo.toStringAsFixed(0)}€ + extra ${p.extra.toStringAsFixed(0)}€'),
+      pw.SizedBox(height: 6),
+      pw.Text('LAVORAZIONI (Ore x €/ora):'),
+      for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text}h x ${l.prezzoOra.text}€/h = ${l.totale().toStringAsFixed(2)}€'),
+      pw.SizedBox(height: 10),
+      pw.Text('TOTALE: ${tot.toStringAsFixed(2)}€ + IVA 22% ${iva.toStringAsFixed(2)}€ = ${(tot + iva).toStringAsFixed(2)}€', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 14),
+      pw.Text('NOTE LEGALI:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+      pw.Text('1. Validità 15 giorni (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro competente di ${foroTesto()}'),
+    ]));
     await Printing.layoutPdf(onLayout: (f) async => d.save());
   }
 
   Widget qtyRow(int qty, Function(int) onCh) {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.remove_circle),
-          onPressed: () => setState(() => onCh(qty > 1 ? qty - 1 : 1)),
-        ),
-        Text(
-          '$qty pz',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.add_circle),
-          onPressed: () => setState(() => onCh(qty + 1)),
-        ),
-      ],
-    );
+    return Row(children: [
+      IconButton(icon: const Icon(Icons.remove_circle), onPressed: () => setState(() => onCh(qty > 1 ? qty - 1 : 1))),
+      Text('$qty pz', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      IconButton(icon: const Icon(Icons.add_circle), onPressed: () => setState(() => onCh(qty + 1))),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Bart v8.7 - N.${prog.toString().padLeft(3, '0')}'),
-        backgroundColor: Colors.brown,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.red),
-            onPressed: pulisci,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text('Bart v8.9 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'INTESTAZIONE FALEGNAME',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: falNome,
-              decoration: const InputDecoration(labelText: 'Nome Falegname'),
-            ),
-            TextField(
-              controller: falInd,
-              decoration: const InputDecoration(labelText: 'Indirizzo'),
-            ),
-            TextField(
-              controller: falPiva,
-              decoration: const InputDecoration(labelText: 'P.IVA'),
-            ),
-            TextField(
-              controller: falTel,
-              decoration: const InputDecoration(labelText: 'Tel'),
-            ),
-            TextField(
-              controller: falEmail,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const Divider(),
-            const Text(
-              'CLIENTE',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: cliNome,
-              decoration: const InputDecoration(labelText: 'Nome Cliente'),
-            ),
-            TextField(
-              controller: cliInd,
-              decoration: const InputDecoration(labelText: 'Indirizzo Cliente'),
-            ),
-            TextField(
-              controller: cliCap,
-              decoration: const InputDecoration(labelText: 'CAP'),
-            ),
-            TextField(
-              controller: cliTel,
-              decoration: const InputDecoration(labelText: 'Tel'),
-            ),
-            TextField(
-              controller: cliEmail,
-              decoration: const InputDecoration(labelText: 'Email Cliente'),
-            ),
-            TextField(
-              controller: cliCF,
-              decoration: const InputDecoration(labelText: 'CF'),
-            ),
-            const Divider(),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('INTESTAZIONE FALEGNAME', style: TextStyle(fontWeight: FontWeight.bold)),
+          TextField(controller: falNome, decoration: const InputDecoration(labelText: 'Nome Falegname')),
+          TextField(controller: falInd, decoration: const InputDecoration(labelText: 'Indirizzo - Via')),
+          TextField(controller: falProvincia, decoration: const InputDecoration(labelText: 'Provincia / Città - es. Chieti (CH) - per Foro'), onChanged: (_) => setState(() {})),
+          TextField(controller: falPiva, decoration: const InputDecoration(labelText: 'P.IVA')),
+          TextField(controller: falTel, decoration: const InputDecoration(labelText: 'Tel')),
+          TextField(controller: falEmail, decoration: const InputDecoration(labelText: 'Email')),
+          const Divider(),
+          const Text('CLIENTE', style: TextStyle(fontWeight: FontWeight.bold)),
+          TextField(controller: cliNome, decoration: const InputDecoration(labelText: 'Nome Cliente')),
+          TextField(controller: cliInd, decoration: const InputDecoration(labelText: 'Indirizzo Cliente')),
+          TextField(controller: cliCap, decoration: const InputDecoration(labelText: 'CAP')),
+          TextField(controller: cliTel, decoration: const InputDecoration(labelText: 'Tel')),
+          TextField(controller: cliEmail, decoration: const InputDecoration(labelText: 'Email Cliente')),
+          TextField(controller: cliCF, decoration: const InputDecoration(labelText: 'CF')),
+          const Divider(),
 
-            // LEGNI
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'ESSENZE LEGNO',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                ElevatedButton(
-                  onPressed: () => setState(() => legni.add(LegnoItem())),
-                  child: const Text('+ AGGIUNGI LEGNO'),
-                ),
-              ],
-            ),
-            for (int i = 0; i < legni.length; i++)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButton<String>(
-                              value: legni[i].essenza,
-                              isExpanded: true,
-                              items: essenze
-                                  .map((e) => DropdownMenuItem(
-                                      value: e, child: Text(e)))
-                                  .toList(),
-                              onChanged: (v) => setState(
-                                  () => legni[i].essenza = v!),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () =>
-                                setState(() => legni.removeAt(i)),
-                          ),
-                        ],
-                      ),
-                      qtyRow(legni[i].qty, (v) => legni[i].qty = v),
-                      const Text('Lunghezza legno in mm:'),
-                      DropdownButton<int>(
-                        value: legni[i].lunghezzaMm,
-                        isExpanded: true,
-                        items: lunghezzeLegno
-                            .map((e) => DropdownMenuItem(
-                                value: e, child: Text('$e mm')))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => legni[i].lunghezzaMm = v!),
-                      ),
-                      const Text('Spessore legno in mm:'),
-                      DropdownButton<int>(
-                        value: legni[i].spessoreMm,
-                        isExpanded: true,
-                        items: spessoriLegno
-                            .map((e) => DropdownMenuItem(
-                                value: e, child: Text('$e mm')))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => legni[i].spessoreMm = v!),
-                      ),
-                      Text(
-                        'Prezzo fisso essenza: ${legni[i].prezzo.toInt()}€ (slide 0-500) - ${legni[i].qty} pz x ${legni[i].lunghezzaMm}mm x ${legni[i].spessoreMm}mm',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Slider(
-                        value: legni[i].prezzo,
-                        min: 0,
-                        max: 500,
-                        divisions: 500,
-                        label: '${legni[i].prezzo.toInt()}€',
-                        onChanged: (v) =>
-                            setState(() => legni[i].prezzo = v),
-                      ),
-                      Text('Extra essenza: ${legni[i].extra.toInt()}€'),
-                      Slider(
-                        value: legni[i].extra,
-                        min: 0,
-                        max: 100,
-                        onChanged: (v) =>
-                            setState(() => legni[i].extra = v),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const Divider(),
+          // ESSENZE LEGNO
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('ESSENZE LEGNO', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => legni.add(LegnoItem())), child: const Text('+ AGGIUNGI LEGNO'))]),
+          for (int i = 0; i < legni.length; i++)
+            Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: DropdownButton<String>(value: legni[i].essenza, isExpanded: true, items: essenze.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => legni[i].essenza = v!))),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => legni.removeAt(i))),
+              ]),
+              qtyRow(legni[i].qty, (v) => legni[i].qty = v),
+              // SLIDE LUNGHEZZA 500 - 6000
+              Text('Lunghezza legno: ${legni[i].lunghezzaMm} mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Slider(value: legni[i].lunghezzaMm.toDouble(), min: 500, max: 6000, divisions: 55, label: '${legni[i].lunghezzaMm} mm', onChanged: (v) => setState(() => legni[i].lunghezzaMm = v.round())),
+              // SLIDE LARGHEZZA 10 - 500
+              Text('Larghezza legno: ${legni[i].larghezzaMm} mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Slider(value: legni[i].larghezzaMm.toDouble(), min: 10, max: 500, divisions: 49, label: '${legni[i].larghezzaMm} mm', onChanged: (v) => setState(() => legni[i].larghezzaMm = v.round())),
+              const Text('Spessore legno in mm:'),
+              DropdownButton<int>(value: legni[i].spessoreMm, isExpanded: true, items: spessoriLegno.map((e) => DropdownMenuItem(value: e, child: Text('$e mm'))).toList(), onChanged: (v) => setState(() => legni[i].spessoreMm = v!)),
+              Text('Prezzo fisso essenza: ${legni[i].prezzo.toInt()}€ (slide 0-500) - ${legni[i].qty} pz x ${legni[i].lunghezzaMm}mm x ${legni[i].larghezzaMm}mm x ${legni[i].spessoreMm}mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Slider(value: legni[i].prezzo, min: 0, max: 500, divisions: 500, label: '${legni[i].prezzo.toInt()}€', onChanged: (v) => setState(() => legni[i].prezzo = v)),
+              Text('Extra essenza: ${legni[i].extra.toInt()}€'),
+              Slider(value: legni[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => legni[i].extra = v)),
+            ]))),
+          const Divider(),
 
-            // PANNELLI
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'PANNELLI MULTISTRATO / LISTELLARE',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                ElevatedButton(
-                  onPressed: () =>
-                      setState(() => pannelli.add(PannelloItem())),
-                  child: const Text('+ AGGIUNGI PANNELLO'),
-                ),
-              ],
-            ),
-            for (int i = 0; i < pannelli.length; i++)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButton<String>(
-                              value: pannelli[i].tipo,
-                              isExpanded: true,
-                              items: tipiPann
-                                  .map((e) => DropdownMenuItem(
-                                      value: e, child: Text(e)))
-                                  .toList(),
-                              onChanged: (v) => setState(
-                                  () => pannelli[i].tipo = v!),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () =>
-                                setState(() => pannelli.removeAt(i)),
-                          ),
-                        ],
-                      ),
-                      qtyRow(pannelli[i].qty, (v) => pannelli[i].qty = v),
-                      const Text('Spessore pannello in mm:'),
-                      DropdownButton<int>(
-                        value: pannelli[i].spessoreMm,
-                        isExpanded: true,
-                        items: spessoriPann
-                            .map((e) => DropdownMenuItem(
-                                value: e, child: Text('$e mm')))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => pannelli[i].spessoreMm = v!),
-                      ),
-                      Text(
-                        'Prezzo fisso pannello: ${pannelli[i].prezzo.toInt()}€ (slide 0-250) - ${pannelli[i].qty} pz x ${pannelli[i].spessoreMm}mm',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Slider(
-                        value: pannelli[i].prezzo,
-                        min: 0,
-                        max: 250,
-                        divisions: 250,
-                        label: '${pannelli[i].prezzo.toInt()}€',
-                        onChanged: (v) =>
-                            setState(() => pannelli[i].prezzo = v),
-                      ),
-                      Text('Extra pannello: ${pannelli[i].extra.toInt()}€'),
-                      Slider(
-                        value: pannelli[i].extra,
-                        min: 0,
-                        max: 100,
-                        onChanged: (v) =>
-                            setState(() => pannelli[i].extra = v),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const Divider(),
+          // PANNELLI
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PANNELLI', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => pannelli.add(PannelloItem())), child: const Text('+ AGGIUNGI PANNELLO'))]),
+          for (int i = 0; i < pannelli.length; i++)
+            Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: DropdownButton<String>(value: pannelli[i].tipo, isExpanded: true, items: tipiPann.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => pannelli[i].tipo = v!))),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => pannelli.removeAt(i))),
+              ]),
+              qtyRow(pannelli[i].qty, (v) => pannelli[i].qty = v),
+              const Text('Spessore pannello in mm:'),
+              DropdownButton<int>(value: pannelli[i].spessoreMm, isExpanded: true, items: spessoriPann.map((e) => DropdownMenuItem(value: e, child: Text('$e mm'))).toList(), onChanged: (v) => setState(() => pannelli[i].spessoreMm = v!)),
+              Text('Prezzo fisso pannello: ${pannelli[i].prezzo.toInt()}€ (slide 0-250) - ${pannelli[i].qty} pz x ${pannelli[i].spessoreMm}mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Slider(value: pannelli[i].prezzo, min: 0, max: 250, divisions: 250, label: '${pannelli[i].prezzo.toInt()}€', onChanged: (v) => setState(() => pannelli[i].prezzo = v)),
+              Text('Extra pannello: ${pannelli[i].extra.toInt()}€'),
+              Slider(value: pannelli[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => pannelli[i].extra = v)),
+            ]))),
+          const Divider(),
 
-            // MANUFATTI
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'MANUFATTI DA CREARE',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                ElevatedButton(
-                  onPressed: () =>
-                      setState(() => manufatti.add(ManufattoItem())),
-                  child: const Text('+ AGGIUNGI MANUFATTO'),
-                ),
-              ],
-            ),
-            for (int i = 0; i < manufatti.length; i++)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: manufatti[i].nome,
-                              decoration: const InputDecoration(
-                                  labelText: 'Descrizione manufatto'),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () =>
-                                setState(() => manufatti.removeAt(i)),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: manufatti[i].l,
-                              decoration: const InputDecoration(
-                                  labelText: 'L mm'),
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: manufatti[i].ll,
-                              decoration: const InputDecoration(
-                                  labelText: 'l mm'),
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: manufatti[i].h,
-                              decoration: const InputDecoration(
-                                  labelText: 'H mm'),
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: manufatti[i].p,
-                              decoration: const InputDecoration(
-                                  labelText: 'P mm'),
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        'Mq questo manufatto: ${mqSingolo(manufatti[i]).toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            Text(
-              'TOT MQ: ${totMq().toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Divider(),
-            const Text(
-              'LAVORAZIONI',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: manodopera,
-              decoration: const InputDecoration(labelText: 'Manodopera €'),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            TextField(
-              controller: levigatura,
-              decoration: const InputDecoration(labelText: 'Levigatura €'),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            TextField(
-              controller: finitura,
-              decoration: const InputDecoration(labelText: 'Finitura €'),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            TextField(
-              controller: verniciatura,
-              decoration: const InputDecoration(labelText: 'Verniciatura €'),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            TextField(
-              controller: utile,
-              decoration:
-                  const InputDecoration(labelText: 'Utile % (nascosto)'),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'TOT STIMATO: ${calcolaTot().toStringAsFixed(2)} EUR - MQ ${totMq().toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'NOTE LEGALI',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              '1. Validità 15 gg (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro Mantova',
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: pdf,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
-                child: Text(
-                    'GENERA PDF v8.7 N.${prog.toString().padLeft(3, '0')} - ${calcolaTot().toStringAsFixed(0)}€'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: pulisci,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('PULISCI TUTTO'),
-              ),
-            ),
-          ],
-        ),
+          // MANUFATTI
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('MANUFATTI DA CREARE', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => manufatti.add(ManufattoItem())), child: const Text('+ AGGIUNGI MANUFATTO'))]),
+          for (int i = 0; i < manufatti.length; i++)
+            Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(children: [
+              Row(children: [
+                Expanded(child: TextField(controller: manufatti[i].nome, decoration: const InputDecoration(labelText: 'Descrizione manufatto'))),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => manufatti.removeAt(i))),
+              ]),
+              qtyRow(manufatti[i].qty, (v) => manufatti[i].qty = v),
+              Row(children: [
+                Expanded(child: TextField(controller: manufatti[i].larghezza, decoration: const InputDecoration(labelText: 'L - Larghezza mm'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
+                Expanded(child: TextField(controller: manufatti[i].altezza, decoration: const InputDecoration(labelText: 'H - Altezza mm'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
+                Expanded(child: TextField(controller: manufatti[i].profondita, decoration: const InputDecoration(labelText: 'P - Profondità mm'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
+              ]),
+              TextField(controller: manufatti[i].lunghezzaTop, decoration: const InputDecoration(labelText: 'Lunghezza Top mm - SOLO se è un Top'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {})),
+              Text('Mq: ${mqSingolo(manufatti[i]).toStringAsFixed(3)} x ${manufatti[i].qty} pz = ${(mqSingolo(manufatti[i]) * manufatti[i].qty).toStringAsFixed(3)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ]))),
+          Text('TOT MQ: ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Divider(),
+
+          // LAVORAZIONI
+          const Text('LAVORAZIONI - ORE (h)', style: TextStyle(fontWeight: FontWeight.bold)),
+          for (var lav in lavorazioni)
+            Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(lav.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Row(children: [
+                Expanded(child: TextField(controller: lav.ore, decoration: const InputDecoration(labelText: 'Ore (h)'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
+                const SizedBox(width: 8),
+                Expanded(child: TextField(controller: lav.prezzoOra, decoration: const InputDecoration(labelText: '€ / ora'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
+              ]),
+              Text('Totale ${lav.nome}: ${lav.totale().toStringAsFixed(2)} €  (${lav.ore.text}h x ${lav.prezzoOra.text}€/h)', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ]))),
+          Text('TOTALE LAVORAZIONI: ${totLavorazioni().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
+          TextField(controller: utile, decoration: const InputDecoration(labelText: 'Utile % (nascosto)'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {})),
+          const SizedBox(height: 12),
+          Text('TOT STIMATO: ${calcolaTot().toStringAsFixed(2)} EUR - MQ ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('IVA 22%: ${calcolaIva().toStringAsFixed(2)} €', style: const TextStyle(fontSize: 16)),
+          Text('TOTALE + IVA: ${(calcolaTot() + calcolaIva()).toStringAsFixed(2)} €', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.brown)),
+          const SizedBox(height: 12),
+          const Text('NOTE LEGALI', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('1. Validità 15 gg (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro competente di ${foroTesto()}'),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: pdf, style: ElevatedButton.styleFrom(backgroundColor: Colors.brown), child: Text('GENERA PDF v8.9 N.2026-${prog.toString().padLeft(3, '0')} - ${(calcolaTot() + calcolaIva()).toStringAsFixed(0)}€'))),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: pulisci, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('PULISCI TUTTO'))),
+        ]),
       ),
     );
   }
