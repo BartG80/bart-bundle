@@ -109,7 +109,8 @@ class _S extends State<PrevPage> {
     LavorazioneItem('Levigatura'),
     LavorazioneItem('Finitura'),
     LavorazioneItem('Verniciatura'),
-  ];
+    LavorazioneItem('Ferramenta e varie'),
+];
 
   final essenze = ['Pino', 'Abete', 'Faggio', 'Frassino', 'Rovere', 'Castagno', 'Noce', 'Ciliegio', 'Canaletto', 'Wenge', 'Teak'];
   final tipiPann = ['Multistrato Okume', 'Multistrato Betulla', 'Multistrato Pino Fenolico', 'Multistrato Pioppo', 'Multistrato Faggio', 'Multistrato Rovere', 'Lamellare Pino', 'Lamellare Faggio', 'Lamellare Rovere', 'Lamellare Abete', 'MDF', 'Truciolare', 'Marino', 'OSB', 'Listellare'];
