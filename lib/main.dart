@@ -13,7 +13,7 @@ class BartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v9.1 GENERICA',
+      title: 'Bart v9.3 GENERICA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
@@ -25,6 +25,7 @@ class LegnoItem {
   String essenza;
   double prezzo;
   double extra;
+  double scarto;
   int lunghezzaMm;
   int larghezzaMm;
   int spessoreMm;
@@ -33,6 +34,7 @@ class LegnoItem {
     this.essenza = 'Pino',
     this.prezzo = 0,
     this.extra = 0,
+    this.scarto = 10,
     this.lunghezzaMm = 2000,
     this.larghezzaMm = 100,
     this.spessoreMm = 30,
@@ -44,12 +46,14 @@ class PannelloItem {
   String tipo;
   double prezzo;
   double extra;
+  double scarto;
   int spessoreMm;
   int qty;
   PannelloItem({
     this.tipo = 'Multistrato Okume',
     this.prezzo = 0,
     this.extra = 0,
+    this.scarto = 5,
     this.spessoreMm = 18,
     this.qty = 1,
   });
@@ -110,7 +114,7 @@ class _S extends State<PrevPage> {
     LavorazioneItem('Finitura'),
     LavorazioneItem('Verniciatura'),
     LavorazioneItem('Ferramenta e varie'),
-];
+  ];
 
   final essenze = ['Pino', 'Abete', 'Faggio', 'Frassino', 'Rovere', 'Castagno', 'Noce', 'Ciliegio', 'Canaletto', 'Wenge', 'Teak'];
   final tipiPann = ['Multistrato Okume', 'Multistrato Betulla', 'Multistrato Pino Fenolico', 'Multistrato Pioppo', 'Multistrato Faggio', 'Multistrato Rovere', 'Lamellare Pino', 'Lamellare Faggio', 'Lamellare Rovere', 'Lamellare Abete', 'MDF', 'Truciolare', 'Marino', 'OSB', 'Listellare'];
@@ -144,8 +148,8 @@ class _S extends State<PrevPage> {
     if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty && totLavorazioni() == 0) return 0;
     double mq = totMq();
     double mat = 0;
-    for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (mq == 0 ? 1 : mq);
-    for (var p in pannelli) mat += (p.prezzo + p.extra) * p.qty * (mq == 0 ? 1 : mq);
+    for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (mq == 0 ? 1 : mq) * (1 + l.scarto / 100);
+    for (var p in pannelli) mat += (p.prezzo + p.extra) * p.qty * (mq == 0 ? 1 : mq) * (1 + p.scarto / 100);
     if (mq == 0 && (legni.isNotEmpty || pannelli.isNotEmpty)) mat = 0;
     double sub = mat + totLavorazioni();
     double u = parse(utile);
@@ -165,14 +169,13 @@ class _S extends State<PrevPage> {
     });
   }
 
-  // PDF - QUI USIAMO EUR PERCHE' IL FONT DEL PDF NON HA IL SIMBOLO EURO
   pw.Document buildPdf() {
     final d = pw.Document();
     double mq = totMq();
     double tot = calcolaTot();
     double iva = calcolaIva();
     d.addPage(pw.MultiPage(build: (c) => [
-      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.1 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.3 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
       pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
@@ -189,9 +192,9 @@ class _S extends State<PrevPage> {
       for (var m in manufatti) pw.Text('${m.qty}x ${m.nome.text} - L ${m.larghezza.text}mm (Larghezza) x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
       pw.SizedBox(height: 6),
       pw.Text('LEGNI:'),
-      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)} EUR + extra ${l.extra.toStringAsFixed(0)} EUR'),
+      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)} EUR + extra ${l.extra.toStringAsFixed(0)} EUR + scarto ${l.scarto.toStringAsFixed(0)}%'),
       pw.Text('PANNELLI:'),
-      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo ${p.prezzo.toStringAsFixed(0)} EUR + extra ${p.extra.toStringAsFixed(0)} EUR'),
+      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo ${p.prezzo.toStringAsFixed(0)} EUR + extra ${p.extra.toStringAsFixed(0)} EUR + scarto ${p.scarto.toStringAsFixed(0)}%'),
       pw.SizedBox(height: 6),
       pw.Text('LAVORAZIONI (Ore x EUR/ora):'),
       for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text}h x ${l.prezzoOra.text} EUR/h = ${l.totale().toStringAsFixed(2)} EUR'),
@@ -234,7 +237,7 @@ class _S extends State<PrevPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bart v9.1 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
+      appBar: AppBar(title: Text('Bart v9.3 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -272,6 +275,8 @@ class _S extends State<PrevPage> {
               Slider(value: legni[i].prezzo, min: 0, max: 500, divisions: 500, label: '${legni[i].prezzo.toInt()}€', onChanged: (v) => setState(() => legni[i].prezzo = v)),
               Text('Extra essenza: ${legni[i].extra.toInt()}€'),
               Slider(value: legni[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => legni[i].extra = v)),
+              Text('Scarto legno: ${legni[i].scarto.toInt()}%'),
+              Slider(value: legni[i].scarto, min: 0, max: 30, onChanged: (v) => setState(() => legni[i].scarto = v)),
             ]))),
           const Divider(),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PANNELLI', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => pannelli.add(PannelloItem())), child: const Text('+ AGGIUNGI PANNELLO'))]),
@@ -288,6 +293,8 @@ class _S extends State<PrevPage> {
               Slider(value: pannelli[i].prezzo, min: 0, max: 250, divisions: 250, label: '${pannelli[i].prezzo.toInt()}€', onChanged: (v) => setState(() => pannelli[i].prezzo = v)),
               Text('Extra pannello: ${pannelli[i].extra.toInt()}€'),
               Slider(value: pannelli[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => pannelli[i].extra = v)),
+              Text('Scarto pannello: ${pannelli[i].scarto.toInt()}%'),
+              Slider(value: pannelli[i].scarto, min: 0, max: 30, onChanged: (v) => setState(() => pannelli[i].scarto = v)),
             ]))),
           const Divider(),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('MANUFATTI DA CREARE', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => manufatti.add(ManufattoItem())), child: const Text('+ AGGIUNGI MANUFATTO'))]),
