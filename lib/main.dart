@@ -13,7 +13,7 @@ class BartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v9.4 GENERICA',
+      title: 'Bart v9.6 GENERICA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
@@ -81,6 +81,17 @@ class LavorazioneItem {
   }
 }
 
+class FerramentaItem {
+  TextEditingController nome = TextEditingController();
+  int qty;
+  TextEditingController prezzoPz = TextEditingController(text: '0');
+  FerramentaItem({this.qty = 1});
+  double totale() {
+    double pr = double.tryParse(prezzoPz.text.replaceAll(',', '.')) ?? 0;
+    return qty * pr;
+  }
+}
+
 class PrevPage extends StatefulWidget {
   const PrevPage({super.key});
   @override
@@ -114,8 +125,8 @@ class _S extends State<PrevPage> {
     LavorazioneItem('Levigatura'),
     LavorazioneItem('Finitura'),
     LavorazioneItem('Verniciatura'),
-    LavorazioneItem('Ferramenta e varie'),
   ];
+  List<FerramentaItem> ferramenta = [FerramentaItem()];
 
   final essenze = ['Pino', 'Abete', 'Faggio', 'Frassino', 'Rovere', 'Castagno', 'Noce', 'Ciliegio', 'Canaletto', 'Wenge', 'Teak'];
   final tipiPann = ['Multistrato Okume', 'Multistrato Betulla', 'Multistrato Pino Fenolico', 'Multistrato Pioppo', 'Multistrato Faggio', 'Multistrato Rovere', 'Lamellare Pino', 'Lamellare Faggio', 'Lamellare Rovere', 'Lamellare Abete', 'MDF', 'Truciolare', 'Marino', 'OSB', 'Listellare'];
@@ -131,7 +142,6 @@ class _S extends State<PrevPage> {
     double P = double.tryParse(m.profondita.text.replaceAll(',', '.')) ?? 0;
     double lungTop = double.tryParse(m.lunghezzaTop.text.replaceAll(',', '.')) ?? 0;
     if (m.tipo == 'Mobile') {
-      // Spalle: 2 x (H x P) + Top+Fondo: 2 x (L x P) - senza schienale e senza ante
       if (L == 0 || H == 0 || P == 0) return 0;
       return (2 * (H * P) + 2 * (L * P)) / 1000000;
     }
@@ -140,7 +150,6 @@ class _S extends State<PrevPage> {
       if (L == 0 || P == 0) return 0;
       return (L * P) / 1000000;
     }
-    // Anta / Porta e Altro: L x H
     if (L == 0 || H == 0) return 0;
     return (L * H) / 1000000;
   }
@@ -157,14 +166,23 @@ class _S extends State<PrevPage> {
     return t;
   }
 
-  double calcolaTot() {
-    if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty && totLavorazioni() == 0) return 0;
-    double mq = totMq();
+  double totFerramenta() {
+    double t = 0;
+    for (var f in ferramenta) t += f.totale();
+    return t;
+  }
+
+  // CORRETTO v9.6: prezzo a PEZZO, non x mq
+  double totMateriale() {
     double mat = 0;
-    for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (mq == 0 ? 1 : mq) * (1 + l.scarto / 100);
-    for (var p in pannelli) mat += (p.prezzo + p.extra) * p.qty * (mq == 0 ? 1 : mq) * (1 + p.scarto / 100);
-    if (mq == 0 && (legni.isNotEmpty || pannelli.isNotEmpty)) mat = 0;
-    double sub = mat + totLavorazioni();
+    for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (1 + l.scarto / 100);
+    for (var p in pannelli) mat += (p.prezzo + p.extra) * p.qty * (1 + p.scarto / 100);
+    return mat;
+  }
+
+  double calcolaTot() {
+    if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty && totLavorazioni() == 0 && totFerramenta() == 0) return 0;
+    double sub = totMateriale() + totLavorazioni() + totFerramenta();
     double u = parse(utile);
     return sub + (sub * u / 100);
   }
@@ -177,6 +195,7 @@ class _S extends State<PrevPage> {
       cliNome.clear(); cliInd.clear(); cliCap.clear(); cliTel.clear(); cliEmail.clear(); cliCF.clear();
       legni.clear(); pannelli.clear(); manufatti.clear();
       for (var l in lavorazioni) { l.ore.text = '0'; l.prezzoOra.text = '0'; }
+      ferramenta = [FerramentaItem()];
       utile.text = '0';
       prog++;
     });
@@ -188,7 +207,7 @@ class _S extends State<PrevPage> {
     double tot = calcolaTot();
     double iva = calcolaIva();
     d.addPage(pw.MultiPage(build: (c) => [
-      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.4 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.6 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
       pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
@@ -202,15 +221,20 @@ class _S extends State<PrevPage> {
       ])),
       pw.SizedBox(height: 10),
       pw.Text('MANUFATTI (${manufatti.length}) - TOT MQ: ${mq.toStringAsFixed(3)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      for (var m in manufatti) pw.Text('${m.qty}x [${m.tipo}] ${m.nome.text} - L ${m.larghezza.text}mm (Larghezza) x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
+      for (var m in manufatti) pw.Text('${m.qty}x [${m.tipo}] ${m.nome.text} - L ${m.larghezza.text}mm x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
       pw.SizedBox(height: 6),
       pw.Text('LEGNI:'),
-      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)} EUR + extra ${l.extra.toStringAsFixed(0)} EUR + scarto ${l.scarto.toStringAsFixed(0)}%'),
+      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - ${l.prezzo.toStringAsFixed(0)} EUR/pz + extra ${l.extra.toStringAsFixed(0)} EUR + scarto ${l.scarto.toStringAsFixed(0)}% = ${((l.prezzo + l.extra) * l.qty * (1 + l.scarto / 100)).toStringAsFixed(2)} EUR'),
       pw.Text('PANNELLI:'),
-      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo ${p.prezzo.toStringAsFixed(0)} EUR + extra ${p.extra.toStringAsFixed(0)} EUR + scarto ${p.scarto.toStringAsFixed(0)}%'),
+      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - ${p.prezzo.toStringAsFixed(0)} EUR/pz + extra ${p.extra.toStringAsFixed(0)} EUR + scarto ${p.scarto.toStringAsFixed(0)}% = ${((p.prezzo + p.extra) * p.qty * (1 + p.scarto / 100)).toStringAsFixed(2)} EUR'),
+      pw.Text('Totale Materiale: ${totMateriale().toStringAsFixed(2)} EUR'),
       pw.SizedBox(height: 6),
       pw.Text('LAVORAZIONI (Ore x EUR/ora):'),
-      for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text}h x ${l.prezzoOra.text} EUR/h = ${l.totale().toStringAsFixed(2)} EUR'),
+      for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text.isEmpty ? "0" : l.ore.text}h x ${l.prezzoOra.text.isEmpty ? "0" : l.prezzoOra.text} EUR/h = ${l.totale().toStringAsFixed(2)} EUR'),
+      pw.SizedBox(height: 6),
+      pw.Text('FERRAMENTA E VARIE (Quantita x EUR/pz):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+      for (var f in ferramenta) pw.Text('${f.nome.text.isEmpty ? "Ferramenta" : f.nome.text}: ${f.qty} pz x ${f.prezzoPz.text.isEmpty ? "0" : f.prezzoPz.text} EUR/pz = ${f.totale().toStringAsFixed(2)} EUR'),
+      pw.Text('Totale Ferramenta: ${totFerramenta().toStringAsFixed(2)} EUR'),
       pw.SizedBox(height: 10),
       pw.Text('TOTALE: ${tot.toStringAsFixed(2)} EUR + IVA 22% ${iva.toStringAsFixed(2)} EUR = ${(tot + iva).toStringAsFixed(2)} EUR', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 14),
@@ -250,7 +274,7 @@ class _S extends State<PrevPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bart v9.4 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
+      appBar: AppBar(title: Text('Bart v9.6 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -284,7 +308,7 @@ class _S extends State<PrevPage> {
               Slider(value: legni[i].larghezzaMm.toDouble(), min: 10, max: 500, divisions: 49, label: '${legni[i].larghezzaMm} mm', onChanged: (v) => setState(() => legni[i].larghezzaMm = v.round())),
               const Text('Spessore legno in mm:'),
               DropdownButton<int>(value: legni[i].spessoreMm, isExpanded: true, items: spessoriLegno.map((e) => DropdownMenuItem(value: e, child: Text('$e mm'))).toList(), onChanged: (v) => setState(() => legni[i].spessoreMm = v!)),
-              Text('Prezzo fisso essenza: ${legni[i].prezzo.toInt()}€ (slide 0-500) - ${legni[i].qty} pz x ${legni[i].lunghezzaMm}mm x ${legni[i].larghezzaMm}mm x ${legni[i].spessoreMm}mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('Prezzo legno: ${legni[i].prezzo.toInt()}€/pz - Totale: ${((legni[i].prezzo + legni[i].extra) * legni[i].qty * (1 + legni[i].scarto / 100)).toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
               Slider(value: legni[i].prezzo, min: 0, max: 500, divisions: 500, label: '${legni[i].prezzo.toInt()}€', onChanged: (v) => setState(() => legni[i].prezzo = v)),
               Text('Extra essenza: ${legni[i].extra.toInt()}€'),
               Slider(value: legni[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => legni[i].extra = v)),
@@ -302,7 +326,7 @@ class _S extends State<PrevPage> {
               qtyRow(pannelli[i].qty, (v) => pannelli[i].qty = v),
               const Text('Spessore pannello in mm:'),
               DropdownButton<int>(value: pannelli[i].spessoreMm, isExpanded: true, items: spessoriPann.map((e) => DropdownMenuItem(value: e, child: Text('$e mm'))).toList(), onChanged: (v) => setState(() => pannelli[i].spessoreMm = v!)),
-              Text('Prezzo fisso pannello: ${pannelli[i].prezzo.toInt()}€ (slide 0-250) - ${pannelli[i].qty} pz x ${pannelli[i].spessoreMm}mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('Prezzo pannello: ${pannelli[i].prezzo.toInt()}€/pz - Totale: ${((pannelli[i].prezzo + pannelli[i].extra) * pannelli[i].qty * (1 + pannelli[i].scarto / 100)).toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
               Slider(value: pannelli[i].prezzo, min: 0, max: 250, divisions: 250, label: '${pannelli[i].prezzo.toInt()}€', onChanged: (v) => setState(() => pannelli[i].prezzo = v)),
               Text('Extra pannello: ${pannelli[i].extra.toInt()}€'),
               Slider(value: pannelli[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => pannelli[i].extra = v)),
@@ -338,9 +362,23 @@ class _S extends State<PrevPage> {
                 const SizedBox(width: 8),
                 Expanded(child: TextField(controller: lav.prezzoOra, decoration: const InputDecoration(labelText: '€ / ora'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
               ]),
-              Text('Totale ${lav.nome}: ${lav.totale().toStringAsFixed(2)} €  (${lav.ore.text}h x ${lav.prezzoOra.text}€/h)', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('Totale ${lav.nome}: ${lav.totale().toStringAsFixed(2)} €  (${lav.ore.text.isEmpty ? "0" : lav.ore.text}h x ${lav.prezzoOra.text.isEmpty ? "0" : lav.prezzoOra.text}€/h)', style: const TextStyle(fontWeight: FontWeight.bold)),
             ]))),
           Text('TOTALE LAVORAZIONI: ${totLavorazioni().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const Divider(),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('FERRAMENTA E VARIE - A QUANTITA', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => ferramenta.add(FerramentaItem())), child: const Text('+ AGGIUNGI FERRAMENTA'))]),
+          for (int i = 0; i < ferramenta.length; i++)
+            Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: TextField(controller: ferramenta[i].nome, decoration: const InputDecoration(labelText: 'Es: Cerniere, Binari cassetti, Maniglie...'), onChanged: (_) => setState(() {}))),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => ferramenta.removeAt(i))),
+              ]),
+              qtyRow(ferramenta[i].qty, (v) => ferramenta[i].qty = v),
+              TextField(controller: ferramenta[i].prezzoPz, decoration: const InputDecoration(labelText: '€ / pz'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {})),
+              Text('Totale: ${ferramenta[i].qty} pz x ${ferramenta[i].prezzoPz.text.isEmpty ? "0" : ferramenta[i].prezzoPz.text} €/pz = ${ferramenta[i].totale().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ]))),
+          Text('TOTALE FERRAMENTA: ${totFerramenta().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('TOTALE MATERIALE: ${totMateriale().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
           TextField(controller: utile, decoration: const InputDecoration(labelText: 'Utile % (nascosto)'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {})),
           const SizedBox(height: 12),
           Text('TOT STIMATO: ${calcolaTot().toStringAsFixed(2)} EUR - MQ ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
