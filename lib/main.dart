@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 void main() { runApp(const BartApp()); }
 
@@ -10,7 +13,7 @@ class BartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v8.9 GENERICA',
+      title: 'Bart v9.0 GENERICA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
@@ -52,7 +55,6 @@ class PannelloItem {
   });
 }
 
-// MANUFATTO: L = Larghezza, H = Altezza, P = Profondita, Lunghezza solo per Top
 class ManufattoItem {
   TextEditingController nome = TextEditingController();
   TextEditingController larghezza = TextEditingController();
@@ -116,7 +118,6 @@ class _S extends State<PrevPage> {
 
   double parse(TextEditingController c) => double.tryParse(c.text.replaceAll(',', '.')) ?? 0;
 
-  // CALCOLO MQ - Mobile: L x H / Top: Lunghezza x L
   double mqSingolo(ManufattoItem m) {
     double L = double.tryParse(m.larghezza.text.replaceAll(',', '.')) ?? 0;
     double H = double.tryParse(m.altezza.text.replaceAll(',', '.')) ?? 0;
@@ -163,13 +164,14 @@ class _S extends State<PrevPage> {
     });
   }
 
-  Future<void> pdf() async {
+  // CREA IL DOCUMENTO PDF - usato sia per condividere che per stampare
+  pw.Document buildPdf() {
     final d = pw.Document();
     double mq = totMq();
     double tot = calcolaTot();
     double iva = calcolaIva();
     d.addPage(pw.MultiPage(build: (c) => [
-      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v8.9 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.0 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
       pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
@@ -198,6 +200,28 @@ class _S extends State<PrevPage> {
       pw.Text('NOTE LEGALI:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
       pw.Text('1. Validità 15 giorni (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro competente di ${foroTesto()}'),
     ]));
+    return d;
+  }
+
+  // CONDIVIDI SU WHATSAPP / TELEGRAM / MAIL
+  Future<void> pdfCondividi() async {
+    final d = buildPdf();
+    double tot = calcolaTot();
+    double iva = calcolaIva();
+    final dir = await getTemporaryDirectory();
+    String nomeCliente = cliNome.text.isEmpty ? 'Cliente' : cliNome.text.replaceAll(' ', '_');
+    final file = File('${dir.path}/Preventivo_2026-${prog.toString().padLeft(3, '0')}_$nomeCliente.pdf');
+    await file.writeAsBytes(await d.save());
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Preventivo N. 2026-${prog.toString().padLeft(3, '0')} - Totale ${(tot + iva).toStringAsFixed(2)}€ - ${falNome.text}',
+    );
+  }
+
+  // STAMPA - solo se serve
+  Future<void> pdfStampa() async {
+    final d = buildPdf();
     await Printing.layoutPdf(onLayout: (f) async => d.save());
   }
 
@@ -212,7 +236,7 @@ class _S extends State<PrevPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bart v8.9 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
+      appBar: AppBar(title: Text('Bart v9.0 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -233,7 +257,6 @@ class _S extends State<PrevPage> {
           TextField(controller: cliCF, decoration: const InputDecoration(labelText: 'CF')),
           const Divider(),
 
-          // ESSENZE LEGNO
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('ESSENZE LEGNO', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => legni.add(LegnoItem())), child: const Text('+ AGGIUNGI LEGNO'))]),
           for (int i = 0; i < legni.length; i++)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -242,10 +265,8 @@ class _S extends State<PrevPage> {
                 IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => legni.removeAt(i))),
               ]),
               qtyRow(legni[i].qty, (v) => legni[i].qty = v),
-              // SLIDE LUNGHEZZA 500 - 6000
               Text('Lunghezza legno: ${legni[i].lunghezzaMm} mm', style: const TextStyle(fontWeight: FontWeight.bold)),
               Slider(value: legni[i].lunghezzaMm.toDouble(), min: 500, max: 6000, divisions: 55, label: '${legni[i].lunghezzaMm} mm', onChanged: (v) => setState(() => legni[i].lunghezzaMm = v.round())),
-              // SLIDE LARGHEZZA 10 - 500
               Text('Larghezza legno: ${legni[i].larghezzaMm} mm', style: const TextStyle(fontWeight: FontWeight.bold)),
               Slider(value: legni[i].larghezzaMm.toDouble(), min: 10, max: 500, divisions: 49, label: '${legni[i].larghezzaMm} mm', onChanged: (v) => setState(() => legni[i].larghezzaMm = v.round())),
               const Text('Spessore legno in mm:'),
@@ -257,7 +278,6 @@ class _S extends State<PrevPage> {
             ]))),
           const Divider(),
 
-          // PANNELLI
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PANNELLI', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => pannelli.add(PannelloItem())), child: const Text('+ AGGIUNGI PANNELLO'))]),
           for (int i = 0; i < pannelli.length; i++)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -275,7 +295,6 @@ class _S extends State<PrevPage> {
             ]))),
           const Divider(),
 
-          // MANUFATTI
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('MANUFATTI DA CREARE', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => manufatti.add(ManufattoItem())), child: const Text('+ AGGIUNGI MANUFATTO'))]),
           for (int i = 0; i < manufatti.length; i++)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(children: [
@@ -295,7 +314,6 @@ class _S extends State<PrevPage> {
           Text('TOT MQ: ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const Divider(),
 
-          // LAVORAZIONI
           const Text('LAVORAZIONI - ORE (h)', style: TextStyle(fontWeight: FontWeight.bold)),
           for (var lav in lavorazioni)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -317,7 +335,9 @@ class _S extends State<PrevPage> {
           const Text('NOTE LEGALI', style: TextStyle(fontWeight: FontWeight.bold)),
           Text('1. Validità 15 gg (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro competente di ${foroTesto()}'),
           const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: pdf, style: ElevatedButton.styleFrom(backgroundColor: Colors.brown), child: Text('GENERA PDF v8.9 N.2026-${prog.toString().padLeft(3, '0')} - ${(calcolaTot() + calcolaIva()).toStringAsFixed(0)}€'))),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: pdfCondividi, style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: Text('CONDIVIDI PDF SU WHATSAPP / TELEGRAM / MAIL - ${(calcolaTot() + calcolaIva()).toStringAsFixed(0)}€'))),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: pdfStampa, style: ElevatedButton.styleFrom(backgroundColor: Colors.brown), child: const Text('STAMPA (solo se serve)'))),
           const SizedBox(height: 8),
           SizedBox(width: double.infinity, child: ElevatedButton(onPressed: pulisci, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('PULISCI TUTTO'))),
         ]),
