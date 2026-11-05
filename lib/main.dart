@@ -13,7 +13,7 @@ class BartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v9.6 GENERICA',
+      title: 'Wood Pro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
@@ -190,6 +190,15 @@ class _S extends State<PrevPage> {
   double calcolaIva() => calcolaTot() * 0.22;
   String foroTesto() => falProvincia.text.isEmpty ? '________' : falProvincia.text;
 
+  // v9.7: data completa + luogo dinamico dal campo Provincia / Citta del falegname
+  String dataOggi() {
+    final ora = DateTime.now();
+    String g = ora.day.toString().padLeft(2, '0');
+    String m = ora.month.toString().padLeft(2, '0');
+    return '$g/$m/${ora.year}';
+  }
+  String luogoPreventivo() => falProvincia.text.isEmpty ? '________' : falProvincia.text;
+
   void pulisci() {
     setState(() {
       cliNome.clear(); cliInd.clear(); cliCap.clear(); cliTel.clear(); cliEmail.clear(); cliCF.clear();
@@ -207,7 +216,10 @@ class _S extends State<PrevPage> {
     double tot = calcolaTot();
     double iva = calcolaIva();
     d.addPage(pw.MultiPage(build: (c) => [
-      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.6 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('Wood Pro', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 4),
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('${luogoPreventivo()}, ${dataOggi()}', style: pw.TextStyle(fontSize: 13)),
       pw.SizedBox(height: 8),
       pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
@@ -274,7 +286,7 @@ class _S extends State<PrevPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bart v9.6 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
+      appBar: AppBar(title: Text('Wood Pro - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
