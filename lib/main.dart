@@ -13,7 +13,7 @@ class BartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v9.0 GENERICA',
+      title: 'Bart v9.1 GENERICA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
@@ -164,14 +164,14 @@ class _S extends State<PrevPage> {
     });
   }
 
-  // CREA IL DOCUMENTO PDF - usato sia per condividere che per stampare
+  // PDF - QUI USIAMO EUR PERCHE' IL FONT DEL PDF NON HA IL SIMBOLO EURO
   pw.Document buildPdf() {
     final d = pw.Document();
     double mq = totMq();
     double tot = calcolaTot();
     double iva = calcolaIva();
     d.addPage(pw.MultiPage(build: (c) => [
-      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.0 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.1 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
       pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
@@ -188,22 +188,21 @@ class _S extends State<PrevPage> {
       for (var m in manufatti) pw.Text('${m.qty}x ${m.nome.text} - L ${m.larghezza.text}mm (Larghezza) x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
       pw.SizedBox(height: 6),
       pw.Text('LEGNI:'),
-      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)}€ + extra ${l.extra.toStringAsFixed(0)}€'),
+      for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)} EUR + extra ${l.extra.toStringAsFixed(0)} EUR'),
       pw.Text('PANNELLI:'),
-      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo ${p.prezzo.toStringAsFixed(0)}€ + extra ${p.extra.toStringAsFixed(0)}€'),
+      for (var p in pannelli) pw.Text('${p.qty}x ${p.tipo} - Spessore ${p.spessoreMm}mm - Prezzo ${p.prezzo.toStringAsFixed(0)} EUR + extra ${p.extra.toStringAsFixed(0)} EUR'),
       pw.SizedBox(height: 6),
-      pw.Text('LAVORAZIONI (Ore x €/ora):'),
-      for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text}h x ${l.prezzoOra.text}€/h = ${l.totale().toStringAsFixed(2)}€'),
+      pw.Text('LAVORAZIONI (Ore x EUR/ora):'),
+      for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text}h x ${l.prezzoOra.text} EUR/h = ${l.totale().toStringAsFixed(2)} EUR'),
       pw.SizedBox(height: 10),
-      pw.Text('TOTALE: ${tot.toStringAsFixed(2)}€ + IVA 22% ${iva.toStringAsFixed(2)}€ = ${(tot + iva).toStringAsFixed(2)}€', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+      pw.Text('TOTALE: ${tot.toStringAsFixed(2)} EUR + IVA 22% ${iva.toStringAsFixed(2)} EUR = ${(tot + iva).toStringAsFixed(2)} EUR', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 14),
       pw.Text('NOTE LEGALI:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      pw.Text('1. Validità 15 giorni (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro competente di ${foroTesto()}'),
+      pw.Text('1. Validita 15 giorni (30 su richiesta)\n2. Prezzi soggetti a variazione mercato\n3. Venature/nodi naturali\n4. Tolleranza +/-2mm\n5. Tempi consegna indicativi\n6. Trasporto/montaggio esclusi\n7. Pagamento 40% acconto, 60% alla consegna\n8. Garanzia 24 mesi\n9. Modifiche in corso d\'opera\n10. Foro competente di ${foroTesto()}'),
     ]));
     return d;
   }
 
-  // CONDIVIDI SU WHATSAPP / TELEGRAM / MAIL
   Future<void> pdfCondividi() async {
     final d = buildPdf();
     double tot = calcolaTot();
@@ -212,14 +211,12 @@ class _S extends State<PrevPage> {
     String nomeCliente = cliNome.text.isEmpty ? 'Cliente' : cliNome.text.replaceAll(' ', '_');
     final file = File('${dir.path}/Preventivo_2026-${prog.toString().padLeft(3, '0')}_$nomeCliente.pdf');
     await file.writeAsBytes(await d.save());
-
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Preventivo N. 2026-${prog.toString().padLeft(3, '0')} - Totale ${(tot + iva).toStringAsFixed(2)}€ - ${falNome.text}',
+      text: 'Preventivo N. 2026-${prog.toString().padLeft(3, '0')} - Totale ${(tot + iva).toStringAsFixed(2)} EUR - ${falNome.text}',
     );
   }
 
-  // STAMPA - solo se serve
   Future<void> pdfStampa() async {
     final d = buildPdf();
     await Printing.layoutPdf(onLayout: (f) async => d.save());
@@ -236,7 +233,7 @@ class _S extends State<PrevPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bart v9.0 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
+      appBar: AppBar(title: Text('Bart v9.1 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -256,7 +253,6 @@ class _S extends State<PrevPage> {
           TextField(controller: cliEmail, decoration: const InputDecoration(labelText: 'Email Cliente')),
           TextField(controller: cliCF, decoration: const InputDecoration(labelText: 'CF')),
           const Divider(),
-
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('ESSENZE LEGNO', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => legni.add(LegnoItem())), child: const Text('+ AGGIUNGI LEGNO'))]),
           for (int i = 0; i < legni.length; i++)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -277,7 +273,6 @@ class _S extends State<PrevPage> {
               Slider(value: legni[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => legni[i].extra = v)),
             ]))),
           const Divider(),
-
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PANNELLI', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => pannelli.add(PannelloItem())), child: const Text('+ AGGIUNGI PANNELLO'))]),
           for (int i = 0; i < pannelli.length; i++)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -294,7 +289,6 @@ class _S extends State<PrevPage> {
               Slider(value: pannelli[i].extra, min: 0, max: 100, onChanged: (v) => setState(() => pannelli[i].extra = v)),
             ]))),
           const Divider(),
-
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('MANUFATTI DA CREARE', style: TextStyle(fontWeight: FontWeight.bold)), ElevatedButton(onPressed: () => setState(() => manufatti.add(ManufattoItem())), child: const Text('+ AGGIUNGI MANUFATTO'))]),
           for (int i = 0; i < manufatti.length; i++)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(children: [
@@ -313,7 +307,6 @@ class _S extends State<PrevPage> {
             ]))),
           Text('TOT MQ: ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const Divider(),
-
           const Text('LAVORAZIONI - ORE (h)', style: TextStyle(fontWeight: FontWeight.bold)),
           for (var lav in lavorazioni)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
