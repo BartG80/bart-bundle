@@ -13,7 +13,7 @@ class BartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bart v9.3 GENERICA',
+      title: 'Bart v9.4 GENERICA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown, useMaterial3: false),
       home: const PrevPage(),
@@ -65,6 +65,7 @@ class ManufattoItem {
   TextEditingController altezza = TextEditingController();
   TextEditingController profondita = TextEditingController();
   TextEditingController lunghezzaTop = TextEditingController();
+  String tipo = 'Mobile';
   int qty = 1;
 }
 
@@ -118,6 +119,7 @@ class _S extends State<PrevPage> {
 
   final essenze = ['Pino', 'Abete', 'Faggio', 'Frassino', 'Rovere', 'Castagno', 'Noce', 'Ciliegio', 'Canaletto', 'Wenge', 'Teak'];
   final tipiPann = ['Multistrato Okume', 'Multistrato Betulla', 'Multistrato Pino Fenolico', 'Multistrato Pioppo', 'Multistrato Faggio', 'Multistrato Rovere', 'Lamellare Pino', 'Lamellare Faggio', 'Lamellare Rovere', 'Lamellare Abete', 'MDF', 'Truciolare', 'Marino', 'OSB', 'Listellare'];
+  final tipiManufatto = ['Mobile', 'Top / Tavolo', 'Anta / Porta', 'Altro'];
   final spessoriPann = [4, 6, 8, 10, 12, 15, 18, 20, 25, 27, 30];
   final spessoriLegno = [20, 25, 30, 40, 50, 60, 70];
 
@@ -126,8 +128,19 @@ class _S extends State<PrevPage> {
   double mqSingolo(ManufattoItem m) {
     double L = double.tryParse(m.larghezza.text.replaceAll(',', '.')) ?? 0;
     double H = double.tryParse(m.altezza.text.replaceAll(',', '.')) ?? 0;
+    double P = double.tryParse(m.profondita.text.replaceAll(',', '.')) ?? 0;
     double lungTop = double.tryParse(m.lunghezzaTop.text.replaceAll(',', '.')) ?? 0;
-    if (lungTop > 0 && L > 0) return (lungTop * L) / 1000000;
+    if (m.tipo == 'Mobile') {
+      // Spalle: 2 x (H x P) + Top+Fondo: 2 x (L x P) - senza schienale e senza ante
+      if (L == 0 || H == 0 || P == 0) return 0;
+      return (2 * (H * P) + 2 * (L * P)) / 1000000;
+    }
+    if (m.tipo == 'Top / Tavolo') {
+      if (lungTop > 0 && L > 0) return (lungTop * L) / 1000000;
+      if (L == 0 || P == 0) return 0;
+      return (L * P) / 1000000;
+    }
+    // Anta / Porta e Altro: L x H
     if (L == 0 || H == 0) return 0;
     return (L * H) / 1000000;
   }
@@ -175,7 +188,7 @@ class _S extends State<PrevPage> {
     double tot = calcolaTot();
     double iva = calcolaIva();
     d.addPage(pw.MultiPage(build: (c) => [
-      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.3 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.Text('PREVENTIVO N. 2026-${prog.toString().padLeft(3, '0')} - Bart v9.4 GENERICA', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
       pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text('FALEGNAME: ${falNome.text} - ${falInd.text} - ${falProvincia.text} - P.IVA ${falPiva.text}'),
@@ -189,7 +202,7 @@ class _S extends State<PrevPage> {
       ])),
       pw.SizedBox(height: 10),
       pw.Text('MANUFATTI (${manufatti.length}) - TOT MQ: ${mq.toStringAsFixed(3)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      for (var m in manufatti) pw.Text('${m.qty}x ${m.nome.text} - L ${m.larghezza.text}mm (Larghezza) x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
+      for (var m in manufatti) pw.Text('${m.qty}x [${m.tipo}] ${m.nome.text} - L ${m.larghezza.text}mm (Larghezza) x H ${m.altezza.text}mm x P ${m.profondita.text}mm ${m.lunghezzaTop.text.isNotEmpty ? "- Lunghezza Top ${m.lunghezzaTop.text}mm" : ""} - Mq ${mqSingolo(m).toStringAsFixed(3)} cad. / Tot ${(mqSingolo(m) * m.qty).toStringAsFixed(3)}'),
       pw.SizedBox(height: 6),
       pw.Text('LEGNI:'),
       for (var l in legni) pw.Text('${l.qty}x ${l.essenza} - Lung. ${l.lunghezzaMm}mm - Larg. ${l.larghezzaMm}mm - Spessore ${l.spessoreMm}mm - Prezzo ${l.prezzo.toStringAsFixed(0)} EUR + extra ${l.extra.toStringAsFixed(0)} EUR + scarto ${l.scarto.toStringAsFixed(0)}%'),
@@ -237,7 +250,7 @@ class _S extends State<PrevPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bart v9.3 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
+      appBar: AppBar(title: Text('Bart v9.4 GENERICA - N.2026-${prog.toString().padLeft(3, '0')}'), backgroundColor: Colors.brown, actions: [IconButton(icon: const Icon(Icons.refresh, color: Colors.red), onPressed: pulisci)]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -304,6 +317,7 @@ class _S extends State<PrevPage> {
                 Expanded(child: TextField(controller: manufatti[i].nome, decoration: const InputDecoration(labelText: 'Descrizione manufatto'))),
                 IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => manufatti.removeAt(i))),
               ]),
+              DropdownButton<String>(value: manufatti[i].tipo, isExpanded: true, items: tipiManufatto.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => manufatti[i].tipo = v!)),
               qtyRow(manufatti[i].qty, (v) => manufatti[i].qty = v),
               Row(children: [
                 Expanded(child: TextField(controller: manufatti[i].larghezza, decoration: const InputDecoration(labelText: 'L - Larghezza mm'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
