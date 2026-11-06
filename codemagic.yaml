@@ -1,6 +1,6 @@
 workflows:
   wood-pro-android:
-    name: Wood Pro v10 Android
+    name: Wood Pro v9.7 Android
     instance_type: linux_x2
     max_build_duration: 60
     environment:
@@ -19,7 +19,7 @@ workflows:
           flutter analyze || true
       - name: Build APK Release
         script: |
-          flutter build apk --release --build-name=10.0 --build-number=10
+          flutter build apk --release --build-name=9.7 --build-number=1
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
     publishing:
