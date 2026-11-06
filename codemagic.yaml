@@ -10,6 +10,9 @@ workflows:
       cache_paths:
         - $FLUTTER_ROOT/.pub-cache
     scripts:
+      - name: Create missing Android files
+        script: |
+          flutter create . --project-name wood_pro
       - name: Get Flutter packages
         script: |
           flutter pub get
