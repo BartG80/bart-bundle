@@ -8,36 +8,11 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-    - name: Fix compileSdk to 36 for ALL
-    script: |
-      # 1. Forza tutti i subprojects a 36
-      cat >> android/build.gradle.kts <<'EOF'
-      subprojects {
-          afterEvaluate {
-              if (hasProperty("android")) {
-                  val android = extensions.findByName("android")
-                  if (android is com.android.build.gradle.BaseExtension) {
-                      android.compileSdkVersion = 36
-                  }
-              }
-          }
-      }
-      EOF
-      # 2. Patch anche la tua app
-      python3 -c "
-      import pathlib, re
-      p = pathlib.Path('android/app/build.gradle.kts')
-      t = p.read_text()
-      t = t.replace('flutter.compileSdkVersion', '36')
-      t = t.replace('flutter.targetSdkVersion', '36')
-      t = re.sub(r'compileSdk\s*=\s*.*', 'compileSdk = 36', t)
-      t = re.sub(r'targetSdk\s*=\s*.*', 'targetSdk = 36', t)
-      p.write_text(t)
-      print('app patched')
-      "
-     - name: Get Flutter packages
-     script: flutter pub get
-     - name: Upgrade share_plus
-     script: flutter pub upgrade share_plus
-     - name: Build AAB
-     script: flutter build appbundle --release
+      - name: Fix SDK
+        script: python3 -c "import pathlib; p=pathlib.Path('android/app/build.gradle.kts'); t=p.read_text(); t=t.replace('flutter.compileSdkVersion','36').replace('flutter.targetSdkVersion','36'); p.write_text(t); print('patched')"
+      - name: Fix plugins
+        script: python3 -c "import pathlib; p=pathlib.Path('android/build.gradle.kts'); p.write_text(p.read_text() + '\nsubprojects { afterEvaluate { if (hasProperty(\"android\")) { try { extensions.getByName(\"android\").compileSdkVersion = 36 } catch (e: Exception) {} } } }\n')"
+      - name: Get packages
+        script: flutter pub get
+      - name: Build AAB
+        script: flutter build appbundle --release
