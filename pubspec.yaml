@@ -1,19 +1,19 @@
 name: bart_bundle
-description: Bart Preventivi PRO - Si parte da 1 pannello
-publish_to: none
-version: 10.0.0+10
+description: "Wood Pro - Preventivi Falegname"
+publish_to: 'none'
+version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.5
   pdf: ^3.10.7
+  printing: ^5.12.0
+  share_plus: ^7.2.1
   path_provider: ^2.1.2
-  share_plus: ^10.1.4
-  printing: ^5.13.4
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
