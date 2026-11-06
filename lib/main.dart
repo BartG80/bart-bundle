@@ -4,7 +4,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 void main() { runApp(const BartApp()); }
@@ -31,8 +30,18 @@ class LegnoItem {
   int larghezzaMm;
   int spessoreMm;
   int qty;
-  LegnoItem({this.essenza = 'Pino', this.prezzo = 0, this.extra = 0, this.scarto = 10, this.lunghezzaMm = 2000, this.larghezzaMm = 100, this.spessoreMm = 30, this.qty = 1});
+  LegnoItem({
+    this.essenza = 'Pino',
+    this.prezzo = 0,
+    this.extra = 0,
+    this.scarto = 10,
+    this.lunghezzaMm = 2000,
+    this.larghezzaMm = 100,
+    this.spessoreMm = 30,
+    this.qty = 1,
+  });
 }
+
 class PannelloItem {
   String tipo;
   double prezzo;
@@ -40,8 +49,16 @@ class PannelloItem {
   double scarto;
   int spessoreMm;
   int qty;
-  PannelloItem({this.tipo = 'Multistrato Okume', this.prezzo = 0, this.extra = 0, this.scarto = 5, this.spessoreMm = 18, this.qty = 1});
+  PannelloItem({
+    this.tipo = 'Multistrato Okume',
+    this.prezzo = 0,
+    this.extra = 0,
+    this.scarto = 5,
+    this.spessoreMm = 18,
+    this.qty = 1,
+  });
 }
+
 class ManufattoItem {
   TextEditingController nome = TextEditingController();
   TextEditingController larghezza = TextEditingController();
@@ -51,6 +68,7 @@ class ManufattoItem {
   String tipo = 'Mobile';
   int qty = 1;
 }
+
 class LavorazioneItem {
   String nome;
   TextEditingController ore = TextEditingController(text: '0');
@@ -62,6 +80,7 @@ class LavorazioneItem {
     return o * pr;
   }
 }
+
 class FerramentaItem {
   TextEditingController nome = TextEditingController();
   int qty;
@@ -81,24 +100,6 @@ class PrevPage extends StatefulWidget {
 
 class _S extends State<PrevPage> {
   int prog = 9;
-
-  @override
-  void initState() {
-    super.initState();
-    _caricaProg();
-  }
-
-  Future<void> _caricaProg() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      prog = prefs.getInt('prog_preventivo') ?? 9;
-    });
-  }
-
-  Future<void> _salvaProg() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('prog_preventivo', prog);
-  }
 
   final falNome = TextEditingController();
   final falInd = TextEditingController();
@@ -158,30 +159,38 @@ class _S extends State<PrevPage> {
     for (var m in manufatti) t += mqSingolo(m) * m.qty;
     return t;
   }
+
   double totLavorazioni() {
     double t = 0;
     for (var l in lavorazioni) t += l.totale();
     return t;
   }
+
   double totFerramenta() {
     double t = 0;
     for (var f in ferramenta) t += f.totale();
     return t;
   }
+
+  // CORRETTO v9.6: prezzo a PEZZO, non x mq
   double totMateriale() {
     double mat = 0;
     for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (1 + l.scarto / 100);
     for (var p in pannelli) mat += (p.prezzo + p.extra) * p.qty * (1 + p.scarto / 100);
     return mat;
   }
+
   double calcolaTot() {
     if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty && totLavorazioni() == 0 && totFerramenta() == 0) return 0;
     double sub = totMateriale() + totLavorazioni() + totFerramenta();
     double u = parse(utile);
     return sub + (sub * u / 100);
   }
+
   double calcolaIva() => calcolaTot() * 0.22;
   String foroTesto() => falProvincia.text.isEmpty ? '________' : falProvincia.text;
+
+  // v9.7: data completa + luogo dinamico dal campo Provincia / Citta del falegname
   String dataOggi() {
     final ora = DateTime.now();
     String g = ora.day.toString().padLeft(2, '0');
@@ -197,6 +206,7 @@ class _S extends State<PrevPage> {
       for (var l in lavorazioni) { l.ore.text = '0'; l.prezzoOra.text = '0'; }
       ferramenta = [FerramentaItem()];
       utile.text = '0';
+      prog++;
     });
   }
 
@@ -258,15 +268,11 @@ class _S extends State<PrevPage> {
       [XFile(file.path)],
       text: 'Preventivo N. 2026-${prog.toString().padLeft(3, '0')} - Totale ${(tot + iva).toStringAsFixed(2)} EUR - ${falNome.text}',
     );
-    setState(() { prog++; });
-    await _salvaProg();
   }
 
   Future<void> pdfStampa() async {
     final d = buildPdf();
     await Printing.layoutPdf(onLayout: (f) async => d.save());
-    setState(() { prog++; });
-    await _salvaProg();
   }
 
   Widget qtyRow(int qty, Function(int) onCh) {
