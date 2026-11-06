@@ -13,6 +13,14 @@ workflows:
       - name: Create missing Android files
         script: |
           flutter create . --project-name wood_pro
+      - name: Fix Android SDK version
+        script: |
+          sed -i 's/compileSdk.*/compileSdk = 36/' android/app/build.gradle.kts || true
+          sed -i 's/compileSdk .*/compileSdk 36/' android/app/build.gradle || true
+          sed -i 's/minSdk.*/minSdk = 21/' android/app/build.gradle.kts || true
+          sed -i 's/targetSdk.*/targetSdk = 36/' android/app/build.gradle.kts || true
+          sed -i 's/targetSdk .*/targetSdk 36/' android/app/build.gradle || true
+          cat android/app/build.gradle.kts || cat android/app/build.gradle
       - name: Get Flutter packages
         script: |
           flutter pub get
