@@ -35,9 +35,9 @@ workflows:
       p.write_text(t)
       print('app patched')
       "
-    - name: Get Flutter packages
-    script: flutter pub get
-    - name: Upgrade share_plus
-    script: flutter pub upgrade share_plus
-    - name: Build AAB
-    script: flutter build appbundle --release
+     - name: Get Flutter packages
+     script: flutter pub get
+     - name: Upgrade share_plus
+     script: flutter pub upgrade share_plus
+     - name: Build AAB
+     script: flutter build appbundle --release
