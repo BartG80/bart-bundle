@@ -1,7 +1,6 @@
 workflows:
   wood-pro-android:
     name: Wood Pro v9.7 Android
-    instance_type: linux_x1
     max_build_duration: 60
     environment:
       flutter: stable
