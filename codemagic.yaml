@@ -14,5 +14,9 @@ workflows:
         script: python3 -c "import pathlib; p=pathlib.Path('android/app/build.gradle.kts'); t=p.read_text(); t=t.replace('flutter.compileSdkVersion','36').replace('flutter.targetSdkVersion','36'); p.write_text(t); print('patched')"
       - name: Get packages
         script: flutter pub get
+      - name: Upgrade share_plus
+        script: flutter pub upgrade share_plus
+      - name: Patch share_plus to 36
+        script: python3 -c "import pathlib,re,glob; files=glob.glob(str(pathlib.Path.home())+'/.pub-cache/hosted/pub.dev/share_plus-*/android/build.gradle*'); [pathlib.Path(f).write_text(re.sub('compileSdk.*','compileSdk = \"36\"',pathlib.Path(f).read_text())) for f in files]; print('patched-plugins')"
       - name: Build AAB
         script: flutter build appbundle --release
