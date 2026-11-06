@@ -1,26 +1,21 @@
 workflows:
   android-workflow:
-    name: Android v8.7 Falegname
-    instance_type: mac_mini_m2
-    max_build_duration: 20
+    name: Android Workflow
+    instance_type: mac_mini_m1
+    max_build_duration: 60
     environment:
       flutter: stable
-      java: 17
+      xcode: latest
+      cocoapods: default
     scripts:
-      - name: Fix SDK only - non tocca lib/
+      - name: Crea cartella Android se manca
         script: |
-          GRADLE_FILE=$(ls android/app/build.gradle* 2>/dev/null | head -n1)
-          if [ -z "$GRADLE_FILE" ]; then
-            echo "Cartella android mancante, la creo senza toccare lib/"
-            flutter create . --platforms=android --project-name bart_bundle --org com.bart --no-pub
-            GRADLE_FILE=$(ls android/app/build.gradle* | head -n1)
+          if [ ! -d "android" ]; then
+            flutter create --platforms=android .
           fi
-          echo "Fix $GRADLE_FILE -> SDK 36"
-          sed -i.bak "s/flutter.compileSdkVersion/36/g" "$GRADLE_FILE" || true
-          sed -i.bak "s/compileSdk = flutter.compileSdkVersion/compileSdk = 36/g" "$GRADLE_FILE" || true
-          flutter pub get
-      - name: Build APK v8.7 Falegname
-        script: |
-          flutter build apk --release --no-tree-shake-icons
+      - name: Pub get
+        script: flutter pub get
+      - name: Build APK
+        script: flutter build apk --release
     artifacts:
-      - build/**/outputs/**/*.apk
+      - build/app/outputs/flutter-apk/app-release.apk
