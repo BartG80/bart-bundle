@@ -8,6 +8,8 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
+      - name: Create Android folder
+        script: if [ ! -d "android" ]; then flutter create --platforms=android .; fi
       - name: Fix SDK
         script: python3 -c "import pathlib; p=pathlib.Path('android/app/build.gradle.kts'); t=p.read_text(); t=t.replace('flutter.compileSdkVersion','36').replace('flutter.targetSdkVersion','36'); p.write_text(t); print('patched')"
       - name: Fix plugins
