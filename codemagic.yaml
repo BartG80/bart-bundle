@@ -17,10 +17,13 @@ workflows:
         script: |
           sed -i 's/compileSdk.*/compileSdk = 36/' android/app/build.gradle.kts || true
           sed -i 's/compileSdk .*/compileSdk 36/' android/app/build.gradle || true
-          sed -i 's/minSdk.*/minSdk = 21/' android/app/build.gradle.kts || true
           sed -i 's/targetSdk.*/targetSdk = 36/' android/app/build.gradle.kts || true
           sed -i 's/targetSdk .*/targetSdk 36/' android/app/build.gradle || true
-          cat android/app/build.gradle.kts || cat android/app/build.gradle
+      - name: Update share_plus to latest
+        script: |
+          python3 -c "import re; t=open('pubspec.yaml').read(); t=re.sub(r'share_plus:.*', 'share_plus: ^11.0.0', t); open('pubspec.yaml','w').write(t)"
+          cat pubspec.yaml
+          flutter pub upgrade --major-versions
       - name: Get Flutter packages
         script: |
           flutter pub get
