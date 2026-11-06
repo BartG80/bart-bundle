@@ -1,4 +1,13 @@
-scripts:
+workflows:
+  android-workflow:
+    name: Android Workflow
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+ scripts:
     - name: Fix compileSdk to 36 for ALL
     script: |
       # 1. Forza tutti i subprojects a 36
