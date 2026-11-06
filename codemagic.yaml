@@ -1,34 +1,33 @@
 workflows:
   android-workflow:
     name: Android Workflow
-    instance_type: mac_mini_m1
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Crea cartella Android e sistema compileSdk
+      - name: Fix compileSdk to 36
         script: |
           if [ ! -d "android" ]; then
             flutter create --platforms=android .
           fi
           python3 -c "
-          import pathlib
+          import pathlib, re
           p = pathlib.Path('android/app/build.gradle.kts')
           t = p.read_text()
-          import re
-          t = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', t)
-          t = re.sub(r'targetSdk\s*=\s*\d+', 'targetSdk = 36', t)
-          t = re.sub(r'minSdk\s*=\s*\d+', 'minSdk = 21', t)
-          t = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', t)
-          t = re.sub(r'targetSdkVersion\s+\d+', 'targetSdkVersion 36', t)
+          t = re.sub(r'compileSdk\s*=\s*.*', 'compileSdk = 36', t)
+          t = re.sub(r'targetSdk\s*=\s*.*', 'targetSdk = 36', t)
+          t = re.sub(r'minSdk\s*=\s*.*', 'minSdk = 21', t)
+          t = re.sub(r'compileSdkVersion\s+.*', 'compileSdkVersion 36', t)
+          t = re.sub(r'targetSdkVersion\s+.*', 'targetSdkVersion 36', t)
+          t = t.replace('flutter.compileSdkVersion', '36')
+          t = t.replace('flutter.targetSdkVersion', '36')
           p.write_text(t)
           print(p.read_text()[:1000])
           "
-      - name: Pub get
+      - name: Get Flutter packages
         script: flutter pub get
-      - name: Build APK
-        script: flutter build apk --release
-    artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
+      - name: Build AAB
+        script: flutter build appbundle --release
