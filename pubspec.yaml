@@ -1,18 +1,18 @@
-name: bart_bundle
-description: "Wood Pro - Preventivi Falegname"
+name: wood_pro
+description: Preventivi falegnameria - Wood Pro
 publish_to: 'none'
-version: 1.0.0+1
+version: 9.7+1
 
 environment:
-  sdk: ^3.5.0
+  sdk: ^3.0.0
 
 dependencies:
   flutter:
     sdk: flutter
-  pdf: ^3.10.7
-  printing: ^5.12.0
+  pdf: ^3.10.4
+  printing: ^5.11.0
   share_plus: ^7.2.1
-  path_provider: ^2.1.2
+  path_provider: ^2.1.1
   shared_preferences: ^2.2.2
 
 dev_dependencies:
