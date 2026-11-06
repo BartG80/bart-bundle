@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 void main() { runApp(const BartApp()); }
@@ -30,16 +31,7 @@ class LegnoItem {
   int larghezzaMm;
   int spessoreMm;
   int qty;
-  LegnoItem({
-    this.essenza = 'Pino',
-    this.prezzo = 0,
-    this.extra = 0,
-    this.scarto = 10,
-    this.lunghezzaMm = 2000,
-    this.larghezzaMm = 100,
-    this.spessoreMm = 30,
-    this.qty = 1,
-  });
+  LegnoItem({this.essenza = 'Pino', this.prezzo = 0, this.extra = 0, this.scarto = 10, this.lunghezzaMm = 2000, this.larghezzaMm = 100, this.spessoreMm = 30, this.qty = 1});
 }
 
 class PannelloItem {
@@ -49,14 +41,7 @@ class PannelloItem {
   double scarto;
   int spessoreMm;
   int qty;
-  PannelloItem({
-    this.tipo = 'Multistrato Okume',
-    this.prezzo = 0,
-    this.extra = 0,
-    this.scarto = 5,
-    this.spessoreMm = 18,
-    this.qty = 1,
-  });
+  PannelloItem({this.tipo = 'Multistrato Okume', this.prezzo = 0, this.extra = 0, this.scarto = 5, this.spessoreMm = 18, this.qty = 1});
 }
 
 class ManufattoItem {
@@ -101,6 +86,22 @@ class PrevPage extends StatefulWidget {
 class _S extends State<PrevPage> {
   int prog = 9;
 
+  @override
+  void initState() {
+    super.initState();
+    _caricaProg();
+  }
+
+  Future<void> _caricaProg() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() { prog = prefs.getInt('prog_preventivo') ?? 9; });
+  }
+
+  Future<void> _salvaProg() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('prog_preventivo', prog);
+  }
+
   final falNome = TextEditingController();
   final falInd = TextEditingController();
   final falProvincia = TextEditingController();
@@ -115,7 +116,7 @@ class _S extends State<PrevPage> {
   final cliEmail = TextEditingController();
   final cliCF = TextEditingController();
 
-  final utile = TextEditingController(text: '0');
+  // NIENTE PIU' UTILE - IL GUADAGNO E' NELLE LAVORAZIONI
 
   List<LegnoItem> legni = [];
   List<PannelloItem> pannelli = [];
@@ -172,7 +173,6 @@ class _S extends State<PrevPage> {
     return t;
   }
 
-  // CORRETTO v9.6: prezzo a PEZZO, non x mq
   double totMateriale() {
     double mat = 0;
     for (var l in legni) mat += (l.prezzo + l.extra) * l.qty * (1 + l.scarto / 100);
@@ -180,17 +180,15 @@ class _S extends State<PrevPage> {
     return mat;
   }
 
+  // TOTALE SEMPLICE: Materiale + Lavorazioni (guadagno) + Ferramenta
   double calcolaTot() {
     if (legni.isEmpty && pannelli.isEmpty && manufatti.isEmpty && totLavorazioni() == 0 && totFerramenta() == 0) return 0;
-    double sub = totMateriale() + totLavorazioni() + totFerramenta();
-    double u = parse(utile);
-    return sub + (sub * u / 100);
+    return totMateriale() + totLavorazioni() + totFerramenta();
   }
 
   double calcolaIva() => calcolaTot() * 0.22;
   String foroTesto() => falProvincia.text.isEmpty ? '________' : falProvincia.text;
 
-  // v9.7: data completa + luogo dinamico dal campo Provincia / Citta del falegname
   String dataOggi() {
     final ora = DateTime.now();
     String g = ora.day.toString().padLeft(2, '0');
@@ -205,9 +203,9 @@ class _S extends State<PrevPage> {
       legni.clear(); pannelli.clear(); manufatti.clear();
       for (var l in lavorazioni) { l.ore.text = '0'; l.prezzoOra.text = '0'; }
       ferramenta = [FerramentaItem()];
-      utile.text = '0';
       prog++;
     });
+    _salvaProg();
   }
 
   pw.Document buildPdf() {
@@ -215,6 +213,7 @@ class _S extends State<PrevPage> {
     double mq = totMq();
     double tot = calcolaTot();
     double iva = calcolaIva();
+
     d.addPage(pw.MultiPage(build: (c) => [
       pw.Text('Wood Pro', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 4),
@@ -243,6 +242,7 @@ class _S extends State<PrevPage> {
       pw.SizedBox(height: 6),
       pw.Text('LAVORAZIONI (Ore x EUR/ora):'),
       for (var l in lavorazioni) pw.Text('${l.nome}: ${l.ore.text.isEmpty ? "0" : l.ore.text}h x ${l.prezzoOra.text.isEmpty ? "0" : l.prezzoOra.text} EUR/h = ${l.totale().toStringAsFixed(2)} EUR'),
+      pw.Text('Totale Lavorazioni: ${totLavorazioni().toStringAsFixed(2)} EUR'),
       pw.SizedBox(height: 6),
       pw.Text('FERRAMENTA E VARIE (Quantita x EUR/pz):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
       for (var f in ferramenta) pw.Text('${f.nome.text.isEmpty ? "Ferramenta" : f.nome.text}: ${f.qty} pz x ${f.prezzoPz.text.isEmpty ? "0" : f.prezzoPz.text} EUR/pz = ${f.totale().toStringAsFixed(2)} EUR'),
@@ -264,10 +264,7 @@ class _S extends State<PrevPage> {
     String nomeCliente = cliNome.text.isEmpty ? 'Cliente' : cliNome.text.replaceAll(' ', '_');
     final file = File('${dir.path}/Preventivo_2026-${prog.toString().padLeft(3, '0')}_$nomeCliente.pdf');
     await file.writeAsBytes(await d.save());
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Preventivo N. 2026-${prog.toString().padLeft(3, '0')} - Totale ${(tot + iva).toStringAsFixed(2)} EUR - ${falNome.text}',
-    );
+    await Share.shareXFiles([XFile(file.path)], text: 'Preventivo N. 2026-${prog.toString().padLeft(3, '0')} - Totale ${(tot + iva).toStringAsFixed(2)} EUR - ${falNome.text}');
   }
 
   Future<void> pdfStampa() async {
@@ -365,7 +362,7 @@ class _S extends State<PrevPage> {
             ]))),
           Text('TOT MQ: ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const Divider(),
-          const Text('LAVORAZIONI - ORE (h)', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('LAVORAZIONI - ORE (h) - QUI C\'E\' IL GUADAGNO', style: TextStyle(fontWeight: FontWeight.bold)),
           for (var lav in lavorazioni)
             Card(child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(lav.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -391,7 +388,6 @@ class _S extends State<PrevPage> {
             ]))),
           Text('TOTALE FERRAMENTA: ${totFerramenta().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
           Text('TOTALE MATERIALE: ${totMateriale().toStringAsFixed(2)} €', style: const TextStyle(fontWeight: FontWeight.bold)),
-          TextField(controller: utile, decoration: const InputDecoration(labelText: 'Utile % (nascosto)'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {})),
           const SizedBox(height: 12),
           Text('TOT STIMATO: ${calcolaTot().toStringAsFixed(2)} EUR - MQ ${totMq().toStringAsFixed(3)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           Text('IVA 22%: ${calcolaIva().toStringAsFixed(2)} €', style: const TextStyle(fontSize: 16)),
