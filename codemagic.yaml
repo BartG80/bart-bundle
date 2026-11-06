@@ -13,7 +13,7 @@ workflows:
       - name: Fix SDK
         script: python3 -c "import pathlib; p=pathlib.Path('android/app/build.gradle.kts'); t=p.read_text(); t=t.replace('flutter.compileSdkVersion','36').replace('flutter.targetSdkVersion','36'); p.write_text(t); print('patched')"
       - name: Fix plugins
-        script: python3 -c "import pathlib; p=pathlib.Path('android/build.gradle.kts'); p.write_text(p.read_text() + chr(10) + 'subprojects{afterEvaluate{if(hasProperty(\"android\")){extensions.getByName(\"android\").compileSdkVersion=36}}}')"
+        script: python3 -c "import pathlib; p=pathlib.Path('android/build.gradle.kts'); p.write_text(p.read_text() + chr(10) + 'subprojects{afterEvaluate{if(hasProperty(\"android\")){(extensions.getByName(\"android\") as com.android.build.gradle.BaseExtension).compileSdkVersion=36}}}')"
       - name: Get packages
         script: flutter pub get
       - name: Build AAB
